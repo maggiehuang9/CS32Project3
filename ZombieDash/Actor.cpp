@@ -3,10 +3,7 @@
 #include "SoundFX.h"
 
 const double STEP_SIZE = 2;
-double distance(double x1, double x2)
-{
-	return x1 > x2 ? x1 - x2 : x2 - x1;
-}
+
 Actor::Actor( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0):GraphObject(imageID, startX, startY, dir, depth, size)
 {
 }
@@ -18,35 +15,7 @@ Actor::~Actor()
 
 void Actor::move(double newX, double newY)
 {
-	vector<Actor*> actors = m_world->getActors();
-	for (vector<Actor*>::iterator it = actors.begin(); it != actors.end(); it++)
-	{
-		if (*it == this) continue;
-		switch (getDirection())
-		{
-		case left:
-			if ((*it)->getX() > getX()) break;
-			if (distance(getY(), (*it)->getY()) > SPRITE_HEIGHT / 2) break;
-			if ((getX() - (*it)->getX()) <= SPRITE_WIDTH) return;
-			break;
-		case right:
-			if ((*it)->getX() < getX()) break;
-			if (distance(getY(), (*it)->getY()) > SPRITE_HEIGHT / 2) break;
-			if (((*it)->getX()) - getX() <= SPRITE_WIDTH) return;
-			break;
-		case down:
-			if ((*it)->getY() > getY()) break;
-			if (distance(getX(), (*it)->getX()) > SPRITE_WIDTH / 2) break;
-			if ((getY() - (*it)->getY()) <= SPRITE_HEIGHT) return;
-			break;
-		case up:
-			if ((*it)->getY() < getY()) break;
-			if (distance(getX(), (*it)->getX()) > SPRITE_WIDTH / 2) break;
-			if (((*it)->getY() - getY()) <= SPRITE_HEIGHT) return;
-			break;
-		}
-	}
-	moveTo(newX, newY);
+	getWorld()->moveActor(*this, newX, newY);
 }
 void Actor::setWorld(StudentWorld* world)
 {

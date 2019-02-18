@@ -17,7 +17,7 @@ public:
     virtual int init();
     virtual int move();
     virtual void cleanUp();
-	vector<Actor*> getActors();
+	void moveActor(Actor & actor, double newX, double newY);
 	
 private:
 	void loadLevelFile(Level &lev);

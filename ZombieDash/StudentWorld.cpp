@@ -7,6 +7,11 @@
 #include <iomanip>
 using namespace std;
 
+double distance(double x1, double x2)
+{
+	return x1 > x2 ? x1 - x2 : x2 - x1;
+}
+
 string intToString(int k)
 {
 	ostringstream oss;
@@ -116,10 +121,42 @@ void StudentWorld::createActors(Level &lev)
 	}
 	cout << "size of" << m_actors.size() << endl;
 }
-vector<Actor*> StudentWorld::getActors()
+
+void StudentWorld::moveActor(Actor &actor, double newX, double newY)
 {
-	return m_actors;
+
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if (*it == &actor) continue;
+
+		switch (actor.getDirection())
+		{
+		case GraphObject::left:
+			if ((*it)->getX() > actor.getX()) break;
+			if (distance(actor.getY(), (*it)->getY()) > SPRITE_HEIGHT / 2) break;
+			if ((actor.getX() - (*it)->getX()) <= SPRITE_WIDTH) return;
+			break;
+		case GraphObject::right:
+			if ((*it)->getX() < actor.getX()) break;
+			if (distance(actor.getY(), (*it)->getY()) > SPRITE_HEIGHT / 2) break;
+			if (((*it)->getX()) - actor.getX() <= SPRITE_WIDTH) return;
+			break;
+		case GraphObject::down:
+			if ((*it)->getY() > actor.getY()) break;
+			if (distance(actor.getX(), (*it)->getX()) > SPRITE_WIDTH / 2) break;
+			if ((actor.getY() - (*it)->getY()) <= SPRITE_HEIGHT) return;
+			break;
+		case GraphObject::up:
+			if ((*it)->getY() < actor.getY()) break;
+			if (distance(actor.getX(), (*it)->getX()) > SPRITE_WIDTH / 2) break;
+			if (((*it)->getY() - actor.getY()) <= SPRITE_HEIGHT) return;
+			break;
+		}
+	}
+	
+	actor.moveTo(newX, newY);
 }
+
 int StudentWorld::move()
 {
     // This code is here merely to allow the game to build, run, and terminate after you hit enter.
