@@ -3,15 +3,16 @@
 #include "SoundFX.h"
 
 const double STEP_SIZE = 2;
+const double OVERLAP_LIMIT = 100;
 
-Actor::Actor( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0):GraphObject(imageID, startX, startY, dir, depth, size)
+Actor::Actor(int imageID, double startX, double startY,Direction dir, int depth, double size)
+	:GraphObject(imageID, startX, startY, dir, depth, size)
 {
 	m_alive = true;
 }
 
 Actor::~Actor()
 {
-
 }
 
 void Actor::move(double newX, double newY)
@@ -43,13 +44,25 @@ void Actor::doSomething()
 
 }
 
-Penelope::Penelope( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth,size)
+bool Actor::isOverlap(const Actor &other)
+{
+	return (pow(getX() - other.getX(), 2) + pow(getX() - other.getX(), 2) < OVERLAP_LIMIT);
+}
+
+bool Actor::isGoodie()
+{
+	return false;
+}
+
+Penelope::Penelope( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth,size)
 {
 	numLandmines = 0;
 	numFlamethrowers = 0;
 	numVaccines = 0;
 	m_infected = false;
 	m_infectionCount = 0;
+	setState(true);
 }
 
 Penelope::~Penelope()
@@ -101,6 +114,7 @@ void Penelope::doSomething()
 			if (numFlamethrowers > 0)
 			{
 				numFlamethrowers--;
+
 				getWorld()->playSound(SOUND_PLAYER_FIRE);
 			}
 			//... add flames in front of Penelope...;
@@ -129,7 +143,8 @@ Actor::actorType Penelope::getType()
 	return player;
 }
 
-Wall::Wall( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Wall::Wall( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -139,17 +154,13 @@ Wall::~Wall()
 
 }
 
-void Wall::doSomething()
-{
-
-}
-
 Actor::actorType Wall::getType()
 {
 	return wall;
 }
 
-Exit::Exit( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Exit::Exit( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -169,7 +180,8 @@ Actor::actorType Exit::getType()
 	return exit;
 }
 
-Pit::Pit( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Pit::Pit( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -189,9 +201,10 @@ Actor::actorType Pit::getType()
 	return pit;
 }
 
-Flame::Flame( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Flame::Flame( int imageID, double startX, double startY,Direction dir, int depth, double size)
+	: Actor(imageID, startX, startY, dir, depth, size)
 {
-
+	numTicks = 0;
 }
 
 Flame::~Flame()
@@ -201,7 +214,9 @@ Flame::~Flame()
 
 void Flame::doSomething()
 {
-
+	if (numTicks >= 2)
+		setState(false);
+	numTicks++;
 }
 
 Actor::actorType Flame::getType()
@@ -209,7 +224,8 @@ Actor::actorType Flame::getType()
 	return flame;
 }
 
-Vomit::Vomit( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0):Actor(imageID, startX, startY, dir, depth, size)
+Vomit::Vomit( int imageID, double startX, double startY,Direction dir, int depth, double size)
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -229,7 +245,8 @@ Actor::actorType Vomit::getType()
 	return vomit;
 }
 
-Goodie::Goodie(int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Goodie::Goodie(int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -239,9 +256,9 @@ Goodie::~Goodie()
 
 }
 
-void Goodie::doSomething()
+bool Goodie::isGoodie()
 {
-
+	return true;
 }
 
 Actor::actorType Goodie::getType()
@@ -249,7 +266,8 @@ Actor::actorType Goodie::getType()
 	return goodie;
 }
 
-VaccineGoodie::VaccineGoodie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Goodie(imageID, startX, startY, dir, depth, size)
+VaccineGoodie::VaccineGoodie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Goodie(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -269,9 +287,9 @@ Actor::actorType VaccineGoodie::getType()
 	return vaccine_goodie;
 }
 
-GasCanGoodie::GasCanGoodie(int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Goodie(imageID, startX, startY, dir, depth, size)
+GasCanGoodie::GasCanGoodie(int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Goodie(imageID, startX, startY, dir, depth, size)
 {
-
 }
 
 GasCanGoodie::~GasCanGoodie()
@@ -281,7 +299,6 @@ GasCanGoodie::~GasCanGoodie()
 
 void GasCanGoodie::doSomething()
 {
-
 }
 
 Actor::actorType GasCanGoodie::getType()
@@ -289,19 +306,17 @@ Actor::actorType GasCanGoodie::getType()
 	return gas_can_goodie;
 }
 
-LandmineGoodie::LandmineGoodie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Goodie(imageID, startX, startY, dir, depth, size)
+LandmineGoodie::LandmineGoodie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Goodie(imageID, startX, startY, dir, depth, size)
 {
-
 }
 
 LandmineGoodie::~LandmineGoodie()
 {
-
 }
 
 void LandmineGoodie::doSomething()
 {
-
 }
 
 Actor::actorType LandmineGoodie::getType()
@@ -309,19 +324,17 @@ Actor::actorType LandmineGoodie::getType()
 	return landmine_goodie;
 }
 
-Landmine::Landmine( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Landmine::Landmine( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
-
 }
 
 Landmine::~Landmine()
 {
-
 }
 
 void Landmine::doSomething()
 {
-
 }
 
 Actor::actorType Landmine::getType()
@@ -329,19 +342,14 @@ Actor::actorType Landmine::getType()
 	return landmine;
 }
 
-Zombie::Zombie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Zombie::Zombie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
 }
 
 Zombie::~Zombie()
 {
-
-}
-
-void Zombie::doSomething()
-{
-
 }
 
 Actor::actorType Zombie::getType()
@@ -349,7 +357,8 @@ Actor::actorType Zombie::getType()
 	return zombie;
 }
 
-DumbZombie::DumbZombie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Zombie(imageID, startX, startY, dir, depth, size)
+DumbZombie::DumbZombie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Zombie(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -361,7 +370,28 @@ DumbZombie::~DumbZombie()
 
 void DumbZombie::doSomething()
 {
+	int ch = randInt(1, 4);
 
+	// user hit a key during this tick!
+	switch (ch)
+	{
+	case 1:  // move to left
+		setDirection(left);
+		move(getX() - STEP_SIZE, getY());
+		break;
+	case 2: // move to right
+		setDirection(right);
+		move(getX() + STEP_SIZE, getY());
+		break;
+	case 3:  // move up
+		setDirection(up);
+		move(getX(), getY() + STEP_SIZE);
+		break;
+	case 4:  // move down
+		setDirection(down);
+		move(getX(), getY() - STEP_SIZE);
+		break;
+	}
 }
 
 Actor::actorType DumbZombie::getType()
@@ -369,7 +399,8 @@ Actor::actorType DumbZombie::getType()
 	return dumb_zombie;
 }
 
-SmartZombie::SmartZombie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Zombie(imageID, startX, startY, dir, depth, size)
+SmartZombie::SmartZombie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Zombie(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -382,14 +413,36 @@ SmartZombie::~SmartZombie()
 
 void SmartZombie::doSomething()
 {
+	int ch = randInt(1, 4);
 
+	// user hit a key during this tick!
+	switch (ch)
+	{
+	case 1:  // move to left
+		setDirection(left);
+		move(getX() - STEP_SIZE, getY());
+		break;
+	case 2: // move to right
+		setDirection(right);
+		move(getX() + STEP_SIZE, getY());
+		break;
+	case 3:  // move up
+		setDirection(up);
+		move(getX(), getY() + STEP_SIZE);
+		break;
+	case 4:  // move down
+		setDirection(down);
+		move(getX(), getY() - STEP_SIZE);
+		break;
+	}
 }
 
 Actor::actorType SmartZombie::getType()
 {
 	return smart_zombie;
 }
-Citizen::Citizen( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Citizen::Citizen( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
 }

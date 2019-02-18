@@ -13,15 +13,17 @@ public:
 		empty, player, dumb_zombie, smart_zombie, citizen, wall, exit, pit,
 		vaccine_goodie, gas_can_goodie, landmine_goodie, flame, vomit, landmine, zombie, goodie
 	};
-	Actor(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Actor(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Actor();
-	virtual void doSomething() = 0;
+	virtual void doSomething();
 	void setWorld(StudentWorld* world);
 	StudentWorld* getWorld();
 	void move(double newX, double newY);
 	virtual actorType getType() = 0;
 	bool isAlive();
 	void setState(bool state);
+	bool isOverlap(const Actor &other);
+	virtual bool isGoodie();
 
 private:
 	StudentWorld* m_world;
@@ -31,7 +33,7 @@ private:
 class Penelope :public Actor
 {
 public:
-	Penelope(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Penelope(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Penelope();
 	void doSomething();
 	virtual actorType getType();
@@ -43,15 +45,14 @@ private:
 class Wall :public Actor
 {
 public:
-	Wall(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Wall(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Wall();
-	void doSomething();
 	virtual actorType getType();
 };
 class Citizen :public Actor
 {
 public:
-	Citizen(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Citizen(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Citizen();
 	void doSomething();
 	virtual actorType getType();
@@ -60,7 +61,7 @@ public:
 class Exit :public Actor
 {
 public:
-	Exit(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Exit(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Exit();
 	void doSomething();
 	virtual actorType getType();
@@ -69,26 +70,30 @@ public:
 class Flame :public Actor
 {
 public:
-	Flame(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Flame(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Flame();
 	void doSomething();
 	virtual actorType getType();
+private:
+	int numTicks;
+
 };
 
 class Goodie : public Actor
 {
 public:
-	Goodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Goodie(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Goodie();
-	void doSomething();
+	virtual void doSomething()=0;
 	virtual actorType getType();
+	bool isGoodie();
 };
 
 
 class GasCanGoodie :public Goodie
 {
 public:
-	GasCanGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	GasCanGoodie(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~GasCanGoodie();
 	void doSomething();
 	virtual actorType getType();
@@ -97,7 +102,7 @@ public:
 class Landmine :public Actor
 {
 public:
-	Landmine(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Landmine(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Landmine();
 	void doSomething();
 	virtual actorType getType();
@@ -106,7 +111,7 @@ public:
 class LandmineGoodie :public Goodie
 {
 public:
-	LandmineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	LandmineGoodie(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~LandmineGoodie();
 	void doSomething();
 	virtual actorType getType();
@@ -115,7 +120,7 @@ public:
 class Pit :public Actor
 {
 public:
-	Pit(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Pit(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Pit();
 	void doSomething();
 	virtual actorType getType();
@@ -124,16 +129,16 @@ public:
 class Zombie :public Actor
 {
 public:
-	Zombie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Zombie(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Zombie();
-	void doSomething();
+	void doSomething()=0;
 	virtual actorType getType();
 };
 
 class SmartZombie :public Zombie
 {
 public:
-	SmartZombie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	SmartZombie(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~SmartZombie();
 	void doSomething();
 	virtual actorType getType();
@@ -142,7 +147,7 @@ public:
 class DumbZombie :public Zombie
 {
 public:
-	DumbZombie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	DumbZombie(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~DumbZombie();
 	void doSomething();
 	virtual actorType getType();
@@ -151,7 +156,7 @@ public:
 class Vomit :public Actor
 {
 public:
-	Vomit(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	Vomit(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Vomit();
 	void doSomething();
 	virtual actorType getType();
@@ -160,9 +165,9 @@ public:
 class VaccineGoodie :public Goodie
 {
 public:
-	VaccineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	VaccineGoodie(int imageID, double startX=0, double startY=0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~VaccineGoodie();
 	void doSomething();
-	virtual actorType getType();
+	virtual Actor::actorType getType();
 };
 #endif // ACTOR_H_
