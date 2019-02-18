@@ -6,6 +6,7 @@ const double STEP_SIZE = 2;
 
 Actor::Actor( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0):GraphObject(imageID, startX, startY, dir, depth, size)
 {
+	m_alive = true;
 }
 
 Actor::~Actor()
@@ -27,6 +28,16 @@ StudentWorld* Actor::getWorld()
 	return m_world;
 }
 
+bool Actor::isAlive()
+{
+	return m_alive;
+}
+
+void Actor::setState(bool state)
+{
+	m_alive = state;
+}
+
 void Actor::doSomething()
 {
 
@@ -34,7 +45,6 @@ void Actor::doSomething()
 
 Penelope::Penelope( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth,size)
 {
-	m_alive = 1;
 	numLandmines = 0;
 	numFlamethrowers = 0;
 	numVaccines = 0;
@@ -49,14 +59,14 @@ Penelope::~Penelope()
 
 void Penelope::doSomething()
 {
-	if (!m_alive)
+	if (!isAlive())
 		return;
 	if (m_infected)
 	{
 		m_infectionCount++;
 		if (m_infectionCount == 500)
 		{
-			m_alive = 0;
+			setState(false);
 			getWorld()->playSound(SOUND_PLAYER_DIE);
 			return;
 		}

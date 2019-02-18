@@ -20,9 +20,12 @@ public:
 	StudentWorld* getWorld();
 	void move(double newX, double newY);
 	virtual actorType getType() = 0;
+	bool isAlive();
+	void setState(bool state);
 
 private:
 	StudentWorld* m_world;
+	bool m_alive;
 };
 
 class Penelope :public Actor
@@ -33,7 +36,7 @@ public:
 	void doSomething();
 	virtual actorType getType();
 private:
-	int m_alive, numLandmines, numFlamethrowers, numVaccines, m_infectionCount;
+	int numLandmines, numFlamethrowers, numVaccines, m_infectionCount;
 	bool m_infected;
 };
 
