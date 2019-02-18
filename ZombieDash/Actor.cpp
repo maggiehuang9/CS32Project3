@@ -88,7 +88,8 @@ void Penelope::doSomething()
 		if (m_infectionCount == 500)
 		{
 			m_alive = 0;
-			//playClip(SOUND_PLAYER_DIE);
+			getWorld()->playSound(SOUND_PLAYER_DIE);
+			return;
 		}
 	}
 	int ch;
@@ -118,9 +119,28 @@ void Penelope::doSomething()
 			//... move Penelope down...;
 			break;
 		case KEY_PRESS_SPACE:
+			if (numFlamethrowers > 0)
+			{
+				numFlamethrowers--;
+				getWorld()->playSound(SOUND_PLAYER_FIRE);
+			}
 			//... add flames in front of Penelope...;
 			break;
-			// etc…
+		case KEY_PRESS_TAB:
+			if (numLandmines > 0)
+			{
+				numLandmines--;
+			}
+			//... add landmines in front of Penelope...;
+			break;
+		case KEY_PRESS_ENTER:
+			if (numVaccines > 0)
+			{
+				numVaccines--;
+				m_infected = false;
+			}
+			//... add vaccines...;
+			break;
 		}
 	}
 }
@@ -230,7 +250,27 @@ Actor::actorType Vomit::getType()
 	return vomit;
 }
 
-VaccineGoodie::VaccineGoodie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+Goodie::Goodie(int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+{
+
+}
+
+Goodie::~Goodie()
+{
+
+}
+
+void Goodie::doSomething()
+{
+
+}
+
+Actor::actorType Goodie::getType()
+{
+	return goodie;
+}
+
+VaccineGoodie::VaccineGoodie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Goodie(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -250,7 +290,7 @@ Actor::actorType VaccineGoodie::getType()
 	return vaccine_goodie;
 }
 
-GasCanGoodie::GasCanGoodie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+GasCanGoodie::GasCanGoodie(int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Goodie(imageID, startX, startY, dir, depth, size)
 {
 
 }
@@ -270,7 +310,7 @@ Actor::actorType GasCanGoodie::getType()
 	return gas_can_goodie;
 }
 
-LandmineGoodie::LandmineGoodie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Actor(imageID, startX, startY, dir, depth, size)
+LandmineGoodie::LandmineGoodie( int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0) :Goodie(imageID, startX, startY, dir, depth, size)
 {
 
 }

@@ -24,6 +24,7 @@ GameWorld* createStudentWorld(string assetPath)
 StudentWorld::StudentWorld(string assetPath)
 : GameWorld(assetPath)
 {
+	m_player = nullptr;
 }
 
 StudentWorld::~StudentWorld()
@@ -71,43 +72,43 @@ void StudentWorld::createActors(Level &lev)
 				//cout << "Location 80,160 is empty" << endl;
 				break;
 			case Level::smart_zombie:
-				m_actors.push_back(new SmartZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new SmartZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 starts with a smart zombie" << endl;
 				break;
 			case Level::dumb_zombie:
-				m_actors.push_back(new DumbZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new DumbZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 starts with a dumb zombie" << endl;
 				break;
 			case Level::player:
-				m_actors.push_back(new Penelope(IID_PLAYER, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new Penelope(IID_PLAYER, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 is where Penelope starts" << endl;
 				break;
 			case Level::exit:
-				m_actors.push_back(new Exit(IID_EXIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new Exit(IID_EXIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 is where an exit is" << endl;
 				break;
 			case Level::wall:
-				m_actors.push_back(new Wall(IID_WALL, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new Wall(IID_WALL, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 holds a Wall" << endl;
 				break;
 			case Level::pit:
-				m_actors.push_back(new Pit(IID_PIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new Pit(IID_PIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::citizen:
-				m_actors.push_back(new Citizen(IID_CITIZEN, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new Citizen(IID_CITIZEN, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::vaccine_goodie:
-				m_actors.push_back(new VaccineGoodie(IID_VACCINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new VaccineGoodie(IID_VACCINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::gas_can_goodie:
-				m_actors.push_back(new GasCanGoodie(IID_GAS_CAN_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new GasCanGoodie(IID_GAS_CAN_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::landmine_goodie:
-				m_actors.push_back(new LandmineGoodie(IID_LANDMINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, 0, 0, 1.0));
+				m_actors.push_back(new LandmineGoodie(IID_LANDMINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			}
@@ -133,9 +134,12 @@ int StudentWorld::move()
 
 void StudentWorld::cleanUp()
 {
-	delete m_player;
+	if(m_player != nullptr)
+		delete m_player;
+	m_player = nullptr;
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
 		delete *it;
 	}
+	m_actors.clear();
 }

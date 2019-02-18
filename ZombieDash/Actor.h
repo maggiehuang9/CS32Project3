@@ -5,14 +5,13 @@
 #include "Level.h"
 
 // Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
-/////
 class StudentWorld;
 class Actor :public GraphObject
 {
 public:
 	enum actorType {
 		empty, player, dumb_zombie, smart_zombie, citizen, wall, exit, pit,
-		vaccine_goodie, gas_can_goodie, landmine_goodie, flame, vomit, landmine, zombie
+		vaccine_goodie, gas_can_goodie, landmine_goodie, flame, vomit, landmine, zombie, goodie
 	};
 	Actor(int imageID, double startX, double startY, Direction dir, int depth, double size);
 	~Actor();
@@ -73,7 +72,17 @@ public:
 	virtual actorType getType();
 };
 
-class GasCanGoodie :public Actor
+class Goodie : public Actor
+{
+public:
+	Goodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
+	~Goodie();
+	void doSomething();
+	virtual actorType getType();
+};
+
+
+class GasCanGoodie :public Goodie
 {
 public:
 	GasCanGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
@@ -91,7 +100,7 @@ public:
 	virtual actorType getType();
 };
 
-class LandmineGoodie :public Actor
+class LandmineGoodie :public Goodie
 {
 public:
 	LandmineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
@@ -145,7 +154,7 @@ public:
 	virtual actorType getType();
 };
 
-class VaccineGoodie :public Actor
+class VaccineGoodie :public Goodie
 {
 public:
 	VaccineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size);
