@@ -22,7 +22,8 @@ public:
 	virtual actorType getType() = 0;
 	bool isAlive();
 	void setState(bool state);
-	bool isOverlap(const Actor &other);
+	bool overlap(const Actor &other);
+	bool overlap(const double x, const double y);
 	virtual bool isGoodie();
 
 private:
@@ -37,9 +38,18 @@ public:
 	~Penelope();
 	void doSomething();
 	virtual actorType getType();
+	void addFlame(int n);
+	void addMine(int n);
+	void addVaccine(int n);
+	int getNumFlame();
+	int getNumMine();
+	int getNumVaccine();
+	void createLandmine();
+
 private:
 	int numLandmines, numFlamethrowers, numVaccines, m_infectionCount;
 	bool m_infected;
+	void createFlame();
 };
 
 class Wall :public Actor

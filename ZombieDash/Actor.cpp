@@ -44,9 +44,16 @@ void Actor::doSomething()
 
 }
 
-bool Actor::isOverlap(const Actor &other)
+bool Actor::overlap(const double x, const double y)
 {
-	return (pow(getX() - other.getX(), 2) + pow(getX() - other.getX(), 2) < OVERLAP_LIMIT);
+	// check if this actor overlap with location x, y
+	return (pow(getX() - x, 2) + pow(getY() - y, 2) < OVERLAP_LIMIT);
+}
+
+bool Actor::overlap(const Actor &other)
+{
+	// check if this actor overlap with other
+	return (pow(getX() - other.getX(), 2) + pow(getY() - other.getY(), 2) < OVERLAP_LIMIT);
 }
 
 bool Actor::isGoodie()
@@ -68,6 +75,80 @@ Penelope::Penelope( int imageID, double startX, double startY,Direction dir, int
 Penelope::~Penelope()
 {
 
+}
+
+void Penelope::addFlame(int n)
+{
+	cout << " addFlame " << n << endl;
+	numFlamethrowers += n;
+	cout << " addFlame " << numFlamethrowers << endl;
+}
+
+void Penelope::addMine(int n)
+{
+	numLandmines += n;
+}
+void Penelope::addVaccine(int n)
+{
+	numVaccines += n;
+}
+
+int Penelope::getNumFlame()
+{
+	return numFlamethrowers;
+}
+int Penelope::getNumMine()
+{
+	return numLandmines;
+}
+int Penelope::getNumVaccine()
+{
+	return numVaccines;
+}
+
+void Penelope::createFlame()
+{
+	double px[3], py[3];
+	switch (getDirection())
+	{
+	case right:
+		px[0] = getX() +   SPRITE_WIDTH;
+		px[1] = getX() + 2*SPRITE_WIDTH;
+		px[2] = getX() + 3*SPRITE_WIDTH;
+		py[0] = py[1] = py[2] = getY();
+		break;
+	case left:
+		px[0] = getX() -     SPRITE_WIDTH;
+		px[1] = getX() - 2 * SPRITE_WIDTH;
+		px[2] = getX() - 3 * SPRITE_WIDTH;
+		py[0] = py[1] = py[2] = getY();
+		break;
+	case up:
+		px[0] = px[1] = px[2] = getX();
+		py[0] = getY() +     SPRITE_HEIGHT;
+		py[1] = getY() + 2 * SPRITE_HEIGHT;
+		py[2] = getY() + 3 * SPRITE_HEIGHT;
+		break;
+	case down:
+		px[0] = px[1] = px[2] = getX();
+		py[0] = getY() - SPRITE_HEIGHT;
+		py[1] = getY() - 2 * SPRITE_HEIGHT;
+		py[2] = getY() - 3 * SPRITE_HEIGHT;
+		break;
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		if (getWorld()->overlapWallExit(px[i], py[i]))break;
+		getWorld()->addActor(new Flame(IID_FLAME, px[i], py[i]));
+	}
+		
+
+}
+
+void Penelope::createLandmine()
+{
+	getWorld()->addActor(new Landmine(IID_LANDMINE, getX(), getY()));
 }
 
 void Penelope::doSomething()
@@ -92,29 +173,31 @@ void Penelope::doSomething()
 		{
 		case KEY_PRESS_LEFT:
 			setDirection(left);
-			move(getX() - STEP_SIZE, getY());
+			move(getX() - 4, getY());
 			//... move Penelope to the left ...;
 			break;
 		case KEY_PRESS_RIGHT:
 			setDirection(right);
-			move(getX() + STEP_SIZE, getY());
+			move(getX() + 4, getY());
 			//... move Penelope to the right ...;
 			break;
 		case KEY_PRESS_UP:
 			setDirection(up);
-			move(getX(), getY() + STEP_SIZE);
+			move(getX(), getY() + 4);
 			//... move Penelope up ...;
 			break;
 		case KEY_PRESS_DOWN:
 			setDirection(down);
-			move(getX(), getY() - STEP_SIZE);
+			move(getX(), getY() - 4);
 			//... move Penelope down...;
 			break;
 		case KEY_PRESS_SPACE:
+			//createFlame();
+			//getWorld()->playSound(SOUND_PLAYER_FIRE);
 			if (numFlamethrowers > 0)
 			{
 				numFlamethrowers--;
-
+				createFlame();
 				getWorld()->playSound(SOUND_PLAYER_FIRE);
 			}
 			//... add flames in front of Penelope...;
@@ -123,6 +206,7 @@ void Penelope::doSomething()
 			if (numLandmines > 0)
 			{
 				numLandmines--;
+				createLandmine();
 			}
 			//... add landmines in front of Penelope...;
 			break;

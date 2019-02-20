@@ -5,12 +5,8 @@
 #include "Actor.h"
 #include <sstream>
 #include <iomanip>
+#include <stack>
 using namespace std;
-
-double distance(double x1, double x2)
-{
-	return x1 > x2 ? x1 - x2 : x2 - x1;
-}
 
 string intToString(int k)
 {
@@ -30,6 +26,7 @@ StudentWorld::StudentWorld(string assetPath)
 : GameWorld(assetPath)
 {
 	m_player = nullptr;
+	score = numLives = numInfected = 0;
 }
 
 StudentWorld::~StudentWorld()
@@ -77,43 +74,44 @@ void StudentWorld::createActors(Level &lev)
 				//cout << "Location 80,160 is empty" << endl;
 				break;
 			case Level::smart_zombie:
-				m_actors.push_back(new SmartZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new SmartZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 starts with a smart zombie" << endl;
 				break;
 			case Level::dumb_zombie:
-				m_actors.push_back(new DumbZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new DumbZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 starts with a dumb zombie" << endl;
 				break;
 			case Level::player:
-				m_actors.push_back(new Penelope(IID_PLAYER, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_player = new Penelope(IID_PLAYER, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0);
+				m_actors.push_back(m_player);
 				//cout << "Location 80,160 is where Penelope starts" << endl;
 				break;
 			case Level::exit:
-				m_actors.push_back(new Exit(IID_EXIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new Exit(IID_EXIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 is where an exit is" << endl;
 				break;
 			case Level::wall:
-				m_actors.push_back(new Wall(IID_WALL, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new Wall(IID_WALL, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 holds a Wall" << endl;
 				break;
 			case Level::pit:
-				m_actors.push_back(new Pit(IID_PIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new Pit(IID_PIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::citizen:
-				m_actors.push_back(new Citizen(IID_CITIZEN, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new Citizen(IID_CITIZEN, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::vaccine_goodie:
-				m_actors.push_back(new VaccineGoodie(IID_VACCINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new VaccineGoodie(IID_VACCINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::gas_can_goodie:
-				m_actors.push_back(new GasCanGoodie(IID_GAS_CAN_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new GasCanGoodie(IID_GAS_CAN_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::landmine_goodie:
-				m_actors.push_back(new LandmineGoodie(IID_LANDMINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0, 1.0));
+				m_actors.push_back(new LandmineGoodie(IID_LANDMINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			}
@@ -122,39 +120,90 @@ void StudentWorld::createActors(Level &lev)
 	cout << "size of" << m_actors.size() << endl;
 }
 
-void StudentWorld::moveActor(Actor &actor, double newX, double newY)
+void StudentWorld::moveActor(Actor &a, double newX, double newY)
 {
 
-	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	for (vector<Actor*>::iterator b = m_actors.begin(); b != m_actors.end(); b++)
 	{
-		if (*it == &actor) continue;
+		if (*b == &a) continue;  // skip itself
+		if (!(*b)->isAlive()) continue;
 
-		switch (actor.getDirection())
+		switch((*b)->getType())
 		{
-		case GraphObject::left:
-			if ((*it)->getX() > actor.getX()) break;
-			if (distance(actor.getY(), (*it)->getY()) > SPRITE_HEIGHT / 2) break;
-			if ((actor.getX() - (*it)->getX()) <= SPRITE_WIDTH) return;
+		case  Actor::landmine_goodie:
+		case Actor::landmine:
+			a.moveTo(newX, newY);
 			break;
-		case GraphObject::right:
-			if ((*it)->getX() < actor.getX()) break;
-			if (distance(actor.getY(), (*it)->getY()) > SPRITE_HEIGHT / 2) break;
-			if (((*it)->getX()) - actor.getX() <= SPRITE_WIDTH) return;
+		case  Actor::gas_can_goodie:
+		case  Actor::vaccine_goodie:
 			break;
-		case GraphObject::down:
-			if ((*it)->getY() > actor.getY()) break;
-			if (distance(actor.getX(), (*it)->getX()) > SPRITE_WIDTH / 2) break;
-			if ((actor.getY() - (*it)->getY()) <= SPRITE_HEIGHT) return;
+		case  Actor::flame:
+			if ((*b)->overlap(a))
+			{
+				a.setState(false);  // actor a is died due to flame
+				break;
+			}
 			break;
-		case GraphObject::up:
-			if ((*it)->getY() < actor.getY()) break;
-			if (distance(actor.getX(), (*it)->getX()) > SPRITE_WIDTH / 2) break;
-			if (((*it)->getY() - actor.getY()) <= SPRITE_HEIGHT) return;
+		default:
+			if (blockingMovemenet(a, *(*b))) return; // check if actor a blocks actor a, if yes, actor a cannot move, just return
 			break;
 		}
+
 	}
 	
-	actor.moveTo(newX, newY);
+	// reach here, no actors block actor a, so a move to new location
+	a.moveTo(newX, newY);
+}
+
+
+bool StudentWorld::overlapWallExit(const double x, const double y)
+{
+	// check if any wall and exit overlap position x, y
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->getType() != Actor::wall && (*it)->getType() != Actor::exit) continue;
+		if ((*it)->overlap(x, y)) return true;
+	}
+
+	return false;
+}
+
+//bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
+//{
+//	// check if actor b blocks actor a, if yes, return true, otherwise, return false
+//	return (distance(b.getX(), a.getX()) < SPRITE_WIDTH-5 &&
+//		distance(b.getY(), a.getY()) < SPRITE_HEIGHT-5);
+//}
+
+
+bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
+{
+	 //check if actor b blocks actor a, if yes, return true, otherwise, return false
+	switch (a.getDirection())
+	{
+	case GraphObject::left:
+		if (b.getX() > a.getX()) return false;
+		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT-2) return false;
+		if ((a.getX() - b.getX()) < SPRITE_WIDTH) return true;
+		return false;
+	case GraphObject::right:
+		if (b.getX() < a.getX()) return false;
+		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT-2) return false;
+		if ((b.getX()) - a.getX() < SPRITE_WIDTH) return true;
+		return false;
+	case GraphObject::down:
+		if (b.getY() > a.getY()) return false;
+		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH-2) return false;
+		if ((a.getY() - b.getY()) < SPRITE_HEIGHT) return true;
+		return false;
+	case GraphObject::up:
+		if (b.getY() < a.getY()) return false;
+		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH-2) return false;
+		if ((b.getY() - a.getY()) < SPRITE_HEIGHT) return true;
+		return false;
+	}
+
+	return false;
 }
 
 int StudentWorld::move()
@@ -164,19 +213,84 @@ int StudentWorld::move()
     //decLives();
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
+		if ((*it)->overlap(*m_player))
+		{
+			switch ((*it)->getType())
+			{
+			case Actor::landmine_goodie:
+				m_player->addMine(2);
+				(*it)->setState(false);
+				break;
+			case Actor::vaccine_goodie:
+				m_player->addVaccine(1);
+				(*it)->setState(false);
+				break;
+			case Actor::gas_can_goodie:
+				m_player->addFlame(5);
+				(*it)->setState(false);
+				break;
+			}
+		}
+
 		(*it)->doSomething();
 	}
+
+	// update status line text
+	// Score: 004500 Level: 27 Lives: 3 Vaccines: 2 Flames: 16 Mines: 1 Infected: 0
+	ostringstream oss;
+	//oss.fill('0');
+	oss << "Score: " << score << "  Level: " << getLevel()
+		<< "  Lives: " << numLives << "  Vaccines: " << m_player->getNumVaccine()
+		<< "  Flames: " << m_player->getNumFlame()
+		<< "  Mines: " << m_player->getNumMine()
+		<< "  Infected: " << numInfected;
+
+	setGameStatText(oss.str());
+
+	if (!m_player->isAlive()) 
+		return GWSTATUS_PLAYER_DIED;
+
+	removeDeadActors();
     return GWSTATUS_CONTINUE_GAME;
 }
 
+void StudentWorld::addActor(Actor* actor)
+{
+	m_actors.push_back(actor);
+}
+
+void StudentWorld::removeDeadActors()
+{
+	stack<int> removeItems;
+
+	for (int i = 0; i< m_actors.size(); i++)
+	{
+		if (!m_actors[i]->isAlive())
+			removeItems.push(i);
+	}
+
+	while (!removeItems.empty())
+	{
+		int i = removeItems.top();
+		Actor *removePointer = m_actors[i];
+		m_actors.erase(m_actors.begin() + i);
+		delete removePointer;
+		removeItems.pop();
+	}
+
+};
+
 void StudentWorld::cleanUp()
 {
-	if(m_player != nullptr)
-		delete m_player;
-	m_player = nullptr;
+
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
 		delete *it;
 	}
 	m_actors.clear();
+
+	//if (m_player != nullptr)  // not need to delete m_player because it is also included in m_actors, already deleted in above loop
+	//	delete m_player;
+	m_player = nullptr;
+	score = numLives = numInfected = 0;
 }
