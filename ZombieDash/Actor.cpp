@@ -151,6 +151,16 @@ void Penelope::createLandmine()
 	getWorld()->addActor(new Landmine(IID_LANDMINE, getX(), getY()));
 }
 
+bool Penelope::foundExit()
+{
+	if (getWorld()->exitFound(this))
+	{
+		if (getWorld()->citizensGone())
+			return true;
+	}
+	return false;
+}
+
 void Penelope::doSomething()
 {
 	if (!isAlive())
@@ -539,6 +549,18 @@ Citizen::~Citizen()
 void Citizen::doSomething()
 {
 
+}
+
+bool Citizen::foundExit()
+{
+	if (getWorld()->exitFound(this))
+	{
+		getWorld()->increaseScore(500);
+		setState(false);
+		getWorld()->playSound(SOUND_CITIZEN_SAVED);
+		return true;
+	}
+	return false;
 }
 
 Actor::actorType Citizen::getType()

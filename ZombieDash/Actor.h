@@ -45,6 +45,7 @@ public:
 	int getNumMine();
 	int getNumVaccine();
 	void createLandmine();
+	bool foundExit();
 
 private:
 	int numLandmines, numFlamethrowers, numVaccines, m_infectionCount;
@@ -66,6 +67,7 @@ public:
 	~Citizen();
 	void doSomething();
 	virtual actorType getType();
+	bool foundExit();
 };
 
 class Exit :public Actor

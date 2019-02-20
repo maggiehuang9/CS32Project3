@@ -132,8 +132,8 @@ void StudentWorld::moveActor(Actor &a, double newX, double newY)
 		{
 		case  Actor::landmine_goodie:
 		case Actor::landmine:
-			a.moveTo(newX, newY);
-			break;
+			/*a.moveTo(newX, newY);
+			break;*/
 		case  Actor::gas_can_goodie:
 		case  Actor::vaccine_goodie:
 			break;
@@ -167,6 +167,37 @@ bool StudentWorld::overlapWallExit(const double x, const double y)
 
 	return false;
 }
+
+bool StudentWorld:: exitFound(Actor* actor)
+{
+	int x = actor->getX();
+	int y = actor->getY();
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->getType() == Actor::exit)
+		{
+			if (overlapWallExit((*it)->getX(), (*it)->getY()))
+			{
+				return true;
+			}
+				
+		}
+	}
+	return false;
+}
+
+bool StudentWorld::citizensGone()
+{
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->getType() == Actor::citizen)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 
 //bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
 //{
@@ -252,6 +283,8 @@ int StudentWorld::move()
 
 	removeDeadActors();
     return GWSTATUS_CONTINUE_GAME;
+	if (m_player->foundExit())
+		return GWSTATUS_FINISHED_LEVEL;
 }
 
 void StudentWorld::addActor(Actor* actor)

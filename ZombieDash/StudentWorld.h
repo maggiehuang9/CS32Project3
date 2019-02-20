@@ -25,7 +25,8 @@ public:
 	void moveActor(Actor & actor, double newX, double newY);
 	void addActor(Actor*);
 	bool overlapWallExit(const double x, const double y);
-	
+	bool exitFound(Actor* actor);
+	bool citizensGone();
 private:
 	void loadLevelFile(Level &lev);
 	void createActors(Level &lev);
