@@ -131,11 +131,11 @@ void StudentWorld::moveActor(Actor &a, double newX, double newY)
 		switch((*b)->getType())
 		{
 		case  Actor::landmine_goodie:
-		case Actor::landmine:
-			/*a.moveTo(newX, newY);
-			break;*/
 		case  Actor::gas_can_goodie:
 		case  Actor::vaccine_goodie:
+			break;
+		case Actor::landmine:
+			a.moveTo(newX, newY);
 			break;
 		case  Actor::flame:
 			if ((*b)->overlap(a))
