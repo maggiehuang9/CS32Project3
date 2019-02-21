@@ -122,35 +122,25 @@ void StudentWorld::createActors(Level &lev)
 
 void StudentWorld::moveActor(Actor &a, double newX, double newY)
 {
-
 	for (vector<Actor*>::iterator b = m_actors.begin(); b != m_actors.end(); b++)
 	{
 		if (*b == &a) continue;  // skip itself
 		if (!(*b)->isAlive()) continue;
 
-		switch((*b)->getType())
-		{
-		case  Actor::landmine_goodie:
-		case  Actor::gas_can_goodie:
-		case  Actor::vaccine_goodie:
-			break;
-		case Actor::landmine:
+		if ((*b)->isGoodie() || (*b)->isExit())
+			int i = 0; // do nothing
+		else if ((*b)->isLandmine())
 			a.moveTo(newX, newY);
-			break;
-		case  Actor::flame:
+		else if ((*b)->isFlame())
 			if ((*b)->overlap(a))
 			{
 				a.setState(false);  // actor a is died due to flame
 				break;
 			}
-			break;
-		default:
-			if (blockingMovemenet(a, *(*b))) return; // check if actor a blocks actor a, if yes, actor a cannot move, just return
-			break;
-		}
+			else if (blockingMovemenet(a, *(*b))) return; // check if actor a blocks actor a, if yes, actor a cannot move, just return
+			//}
 
 	}
-	
 	// reach here, no actors block actor a, so a move to new location
 	a.moveTo(newX, newY);
 }
@@ -161,7 +151,7 @@ bool StudentWorld::overlapWallExit(const double x, const double y)
 	// check if any wall and exit overlap position x, y
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->getType() != Actor::wall && (*it)->getType() != Actor::exit) continue;
+		if (!(*it)->isWall() && !(*it)->isExit()) continue;
 		if ((*it)->overlap(x, y)) return true;
 	}
 
@@ -174,9 +164,9 @@ bool StudentWorld:: exitFound(Actor* actor)
 	int y = actor->getY();
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->getType() == Actor::exit)
+		if ((*it)->isExit())
 		{
-			if (overlapWallExit((*it)->getX(), (*it)->getY()))
+			if ((*it)->overlap(*actor))
 			{
 				return true;
 			}
@@ -190,7 +180,7 @@ bool StudentWorld::citizensGone()
 {
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->getType() == Actor::citizen)
+		if ((*it)->isCitizen())
 		{
 			return false;
 		}
@@ -209,28 +199,28 @@ bool StudentWorld::citizensGone()
 
 bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
 {
-	 //check if actor b blocks actor a, if yes, return true, otherwise, return false
+	//check if actor b blocks actor a, if yes, return true, otherwise, return false
 	switch (a.getDirection())
 	{
 	case GraphObject::left:
 		if (b.getX() > a.getX()) return false;
-		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT-2) return false;
-		if ((a.getX() - b.getX()) < SPRITE_WIDTH) return true;
+		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT) return false;
+		if ((a.getX() - b.getX()) < SPRITE_WIDTH + 4) return true;
 		return false;
 	case GraphObject::right:
 		if (b.getX() < a.getX()) return false;
-		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT-2) return false;
-		if ((b.getX()) - a.getX() < SPRITE_WIDTH) return true;
+		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT) return false;
+		if ((b.getX()) - a.getX() < SPRITE_WIDTH + 4) return true;
 		return false;
 	case GraphObject::down:
 		if (b.getY() > a.getY()) return false;
-		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH-2) return false;
-		if ((a.getY() - b.getY()) < SPRITE_HEIGHT) return true;
+		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH) return false;
+		if ((a.getY() - b.getY()) < SPRITE_HEIGHT + 4) return true;
 		return false;
 	case GraphObject::up:
 		if (b.getY() < a.getY()) return false;
-		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH-2) return false;
-		if ((b.getY() - a.getY()) < SPRITE_HEIGHT) return true;
+		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH) return false;
+		if ((b.getY() - a.getY()) < SPRITE_HEIGHT + 4) return true;
 		return false;
 	}
 
@@ -246,20 +236,21 @@ int StudentWorld::move()
 	{
 		if ((*it)->overlap(*m_player))
 		{
-			switch ((*it)->getType())
+
+			if ((*it)->isLandmineGoodie())
 			{
-			case Actor::landmine_goodie:
 				m_player->addMine(2);
 				(*it)->setState(false);
-				break;
-			case Actor::vaccine_goodie:
+			}
+			else if ((*it)->isVaccineGoodie())
+			{
 				m_player->addVaccine(1);
 				(*it)->setState(false);
-				break;
-			case Actor::gas_can_goodie:
+			}
+			else if ((*it)->isGasCanGoodie())
+			{
 				m_player->addFlame(5);
 				(*it)->setState(false);
-				break;
 			}
 		}
 
@@ -282,9 +273,11 @@ int StudentWorld::move()
 		return GWSTATUS_PLAYER_DIED;
 
 	removeDeadActors();
-    return GWSTATUS_CONTINUE_GAME;
+    
 	if (m_player->foundExit())
 		return GWSTATUS_FINISHED_LEVEL;
+
+	return GWSTATUS_CONTINUE_GAME;
 }
 
 void StudentWorld::addActor(Actor* actor)
