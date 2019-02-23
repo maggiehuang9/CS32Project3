@@ -53,52 +53,42 @@ bool Actor::overlap(const double x, const double y)
 bool Actor::overlap(const Actor &other)
 {
 	// check if this actor overlap with other
+	if (this == &other) return false; // exclude itself
 	return (pow(getX() - other.getX(), 2) + pow(getY() - other.getY(), 2) < OVERLAP_LIMIT);
 }
 
-Penelope::Penelope(int imageID, double startX, double startY,Direction dir, int depth, double size) 
-	:Actor(imageID, startX, startY, dir, depth,size)
+People::People(int imageID, double startX, double startY, Direction dir, int depth, double size)
+	:People(imageID, startX, startY, dir, depth, size)
 {
-	numLandmines = 0;
-	numFlamethrowers = 0;
-	numVaccines = 0;
+	m_infected = false;
+}
+
+People::~People()
+{
+
+}
+void People::doSomething()
+{
+
+}
+
+void People:: isInfected()
+{
+	m_infected = true;
+}
+
+Penelope::Penelope(int imageID, double startX, double startY, Direction dir, int depth, double size)
+	:People(imageID, startX, startY, dir, depth, size)
+{
 	m_infected = false;
 	m_infectionCount = 0;
 	setState(true);
 }
 
+
 Penelope::~Penelope()
 {
 
-}
-
-void Penelope::addFlame(int n)
-{
-	cout << " addFlame " << n << endl;
-	numFlamethrowers += n;
-	cout << " addFlame " << numFlamethrowers << endl;
-}
-
-void Penelope::addMine(int n)
-{
-	numLandmines += n;
-}
-void Penelope::addVaccine(int n)
-{
-	numVaccines += n;
-}
-
-int Penelope::getNumFlame()
-{
-	return numFlamethrowers;
-}
-int Penelope::getNumMine()
-{
-	return numLandmines;
-}
-int Penelope::getNumVaccine()
-{
-	return numVaccines;
 }
 
 void Penelope::createFlame()
@@ -107,20 +97,20 @@ void Penelope::createFlame()
 	switch (getDirection())
 	{
 	case right:
-		px[0] = getX() +   SPRITE_WIDTH;
-		px[1] = getX() + 2*SPRITE_WIDTH;
-		px[2] = getX() + 3*SPRITE_WIDTH;
+		px[0] = getX() + SPRITE_WIDTH;
+		px[1] = getX() + 2 * SPRITE_WIDTH;
+		px[2] = getX() + 3 * SPRITE_WIDTH;
 		py[0] = py[1] = py[2] = getY();
 		break;
 	case left:
-		px[0] = getX() -     SPRITE_WIDTH;
+		px[0] = getX() - SPRITE_WIDTH;
 		px[1] = getX() - 2 * SPRITE_WIDTH;
 		px[2] = getX() - 3 * SPRITE_WIDTH;
 		py[0] = py[1] = py[2] = getY();
 		break;
 	case up:
 		px[0] = px[1] = px[2] = getX();
-		py[0] = getY() +     SPRITE_HEIGHT;
+		py[0] = getY() + SPRITE_HEIGHT;
 		py[1] = getY() + 2 * SPRITE_HEIGHT;
 		py[2] = getY() + 3 * SPRITE_HEIGHT;
 		break;
@@ -137,6 +127,8 @@ void Penelope::createFlame()
 		if (getWorld()->overlapWallExit(px[i], py[i]))break;
 		getWorld()->addActor(new Flame(IID_FLAME, px[i], py[i]));
 	}
+
+
 }
 
 void Penelope::createLandmine()
@@ -148,8 +140,11 @@ bool Penelope::foundExit()
 {
 	if (getWorld()->exitFound(this))
 	{
-		if (getWorld()->citizensGone())
+		if (getWorld()->citizensGone()) {
+			getWorld()->levelFinished();
 			return true;
+		}
+			
 	}
 	return false;
 }
@@ -197,26 +192,26 @@ void Penelope::doSomething()
 		case KEY_PRESS_SPACE:
 			//createFlame();
 			//getWorld()->playSound(SOUND_PLAYER_FIRE);
-			if (numFlamethrowers > 0)
+			if (getWorld()->getNumFlame() > 0)
 			{
-				numFlamethrowers--;
+				getWorld()->decreaseFlame();
 				createFlame();
 				getWorld()->playSound(SOUND_PLAYER_FIRE);
 			}
 			//... add flames in front of Penelope...;
 			break;
 		case KEY_PRESS_TAB:
-			if (numLandmines > 0)
+			if (getWorld()->getNumMine() > 0)
 			{
-				numLandmines--;
+				getWorld()->decreaseMine();
 				createLandmine();
 			}
 			//... add landmines in front of Penelope...;
 			break;
 		case KEY_PRESS_ENTER:
-			if (numVaccines > 0)
+			if (getWorld()->getNumVaccine() > 0)
 			{
-				numVaccines--;
+				getWorld()->decreaseVaccine();
 				m_infected = false;
 			}
 			//... add vaccines...;
@@ -225,8 +220,7 @@ void Penelope::doSomething()
 	}
 }
 
-
-Wall::Wall( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+Wall::Wall(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
@@ -242,8 +236,7 @@ void Wall::doSomething()
 
 }
 
-
-Exit::Exit( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+Exit::Exit(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
@@ -259,8 +252,7 @@ void Exit::doSomething()
 
 }
 
-
-Pit::Pit( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+Pit::Pit(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
@@ -276,24 +268,20 @@ void Pit::doSomething()
 
 }
 
-
 Throwables::Throwables(int imageID, double startX, double startY, Direction dir, int depth, double size)
-:Actor(imageID, startX, startY, dir, depth, size)
+	: Actor(imageID, startX, startY, dir, depth, size)
 {
 	numTicks = 0;
 }
+
 Throwables::~Throwables()
 {
 
 }
+
 void Throwables::doSomething()
 {
-
-}
-
-int Throwables::getNumTicks()
-{
-	return numTicks;
+	
 }
 
 void Throwables::setNumTicks(int num)
@@ -301,10 +289,14 @@ void Throwables::setNumTicks(int num)
 	numTicks += num;
 }
 
-Flame::Flame( int imageID, double startX, double startY,Direction dir, int depth, double size)
+int Throwables::getNumTicks()
+{
+	return numTicks;
+}
+Flame::Flame(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	: Throwables(imageID, startX, startY, dir, depth, size)
 {
-	setNumTicks(0);
+	
 }
 
 Flame::~Flame()
@@ -319,7 +311,7 @@ void Flame::doSomething()
 	setNumTicks(1);
 }
 
-Vomit::Vomit( int imageID, double startX, double startY,Direction dir, int depth, double size)
+Vomit::Vomit(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Throwables(imageID, startX, startY, dir, depth, size)
 {
 
@@ -327,7 +319,7 @@ Vomit::Vomit( int imageID, double startX, double startY,Direction dir, int depth
 
 Vomit::~Vomit()
 {
-
+	
 }
 
 void Vomit::doSomething()
@@ -339,11 +331,9 @@ void Vomit::doSomething()
 		setState(false);
 		return;
 	}
-	setNumTicks(1);
 }
 
-
-Goodie::Goodie(int imageID, double startX, double startY,Direction dir, int depth, double size) 
+Goodie::Goodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
@@ -354,8 +344,20 @@ Goodie::~Goodie()
 
 }
 
+void Goodie::doSomething()
+{
+	if (!isAlive())
+		return;
+	if (getWorld()->overlapGoodie(this))
+	{
+		getWorld()->increaseScore(50);
+		setState(false);
+		getWorld()->playSound(SOUND_GOT_GOODIE);
+	}
+}
 
-VaccineGoodie::VaccineGoodie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+
+VaccineGoodie::VaccineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Goodie(imageID, startX, startY, dir, depth, size)
 {
 
@@ -371,8 +373,13 @@ void VaccineGoodie::doSomething()
 
 }
 
+void VaccineGoodie::addGoodie()
+{
+	getWorld()->addVaccine();
+	setState(false);
+};
 
-GasCanGoodie::GasCanGoodie(int imageID, double startX, double startY,Direction dir, int depth, double size) 
+GasCanGoodie::GasCanGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Goodie(imageID, startX, startY, dir, depth, size)
 {
 }
@@ -386,8 +393,13 @@ void GasCanGoodie::doSomething()
 {
 }
 
+void GasCanGoodie::addGoodie()
+{
+	getWorld()->addFlame();
+	setState(false);
+};
 
-LandmineGoodie::LandmineGoodie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+LandmineGoodie::LandmineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Goodie(imageID, startX, startY, dir, depth, size)
 {
 }
@@ -400,10 +412,17 @@ void LandmineGoodie::doSomething()
 {
 }
 
+void LandmineGoodie::addGoodie()
+{
+	getWorld()->addMine();
+	setState(false);
+};
 
-Landmine::Landmine( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+Landmine::Landmine(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
+	m_active = false;
+	safetyTicks = 30;
 }
 
 Landmine::~Landmine()
@@ -412,10 +431,28 @@ Landmine::~Landmine()
 
 void Landmine::doSomething()
 {
+	if (!isAlive())
+		return;
+	while (!m_active)
+	{
+		safetyTicks--;
+		if (safetyTicks == 0)
+		{
+			m_active = true;
+			return;
+		}
+	}
+	if (//overlap wtih Penelope or citizen)
+	{
+		setState(false);
+		playSound(SOUND_LANDMINE_EXPLODE);
+		createFlame();
+		//create pit
+	}
+
 }
 
-
-Zombie::Zombie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+Zombie::Zombie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
 
@@ -425,8 +462,7 @@ Zombie::~Zombie()
 {
 }
 
-
-DumbZombie::DumbZombie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+DumbZombie::DumbZombie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Zombie(imageID, startX, startY, dir, depth, size)
 {
 
@@ -463,13 +499,11 @@ void DumbZombie::doSomething()
 	}
 }
 
-
-SmartZombie::SmartZombie( int imageID, double startX, double startY,Direction dir, int depth, double size) 
+SmartZombie::SmartZombie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Zombie(imageID, startX, startY, dir, depth, size)
 {
 
 }
-
 
 SmartZombie::~SmartZombie()
 {
@@ -502,8 +536,8 @@ void SmartZombie::doSomething()
 	}
 }
 
-Citizen::Citizen( int imageID, double startX, double startY,Direction dir, int depth, double size) 
-	:Actor(imageID, startX, startY, dir, depth, size)
+Citizen::Citizen(int imageID, double startX, double startY, Direction dir, int depth, double size)
+	:People(imageID, startX, startY, dir, depth, size)
 {
 
 }

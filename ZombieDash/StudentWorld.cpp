@@ -23,10 +23,12 @@ GameWorld* createStudentWorld(string assetPath)
 // Students:  Add code to this file, StudentWorld.h, Actor.h and Actor.cpp
 
 StudentWorld::StudentWorld(string assetPath)
-: GameWorld(assetPath)
+	: GameWorld(assetPath)
 {
 	m_player = nullptr;
-	score = numLives = numInfected = 0;
+	score = numLives = numInfected = numCitizens = 0;
+	numVaccines = numLandmines = numFlamethrowers = 0;
+	game_level_finished = false;
 }
 
 StudentWorld::~StudentWorld()
@@ -99,6 +101,7 @@ void StudentWorld::createActors(Level &lev)
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
 			case Level::citizen:
+				numCitizens++;
 				m_actors.push_back(new Citizen(IID_CITIZEN, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
 				//cout << "Location 80,160 has a pit in the ground" << endl;
 				break;
@@ -122,25 +125,19 @@ void StudentWorld::createActors(Level &lev)
 
 void StudentWorld::moveActor(Actor &a, double newX, double newY)
 {
+
 	for (vector<Actor*>::iterator b = m_actors.begin(); b != m_actors.end(); b++)
 	{
 		if (*b == &a) continue;  // skip itself
 		if (!(*b)->isAlive()) continue;
 
-		if ((*b)->isGoodie() || (*b)->isExit())
-			int i = 0; // do nothing
-		else if ((*b)->isLandmine())
-			a.moveTo(newX, newY);
-		else if ((*b)->isFlame())
-			if ((*b)->overlap(a))
-			{
-				a.setState(false);  // actor a is died due to flame
-				break;
-			}
-			else if (blockingMovemenet(a, *(*b))) return; // check if actor a blocks actor a, if yes, actor a cannot move, just return
-			//}
 
+		if ((*b)->flammable() && (*b)->overlap(a))
+			a.setState(false);  // actor a is died due to flame
+		else if ((*b)->blockingActor())
+			if (blockingMovement(a, *(*b))) return;
 	}
+
 	// reach here, no actors block actor a, so a move to new location
 	a.moveTo(newX, newY);
 }
@@ -151,26 +148,24 @@ bool StudentWorld::overlapWallExit(const double x, const double y)
 	// check if any wall and exit overlap position x, y
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if (!(*it)->isWall() && !(*it)->isExit()) continue;
-		if ((*it)->overlap(x, y)) return true;
+		if ((*it)->blockingFlame() && (*it)->overlap(x, y)) return true;
 	}
 
 	return false;
 }
 
-bool StudentWorld:: exitFound(Actor* actor)
+bool StudentWorld::exitFound(Actor* actor)
 {
 	int x = actor->getX();
 	int y = actor->getY();
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->isExit())
+		if ((*it)->canExit())
 		{
 			if ((*it)->overlap(*actor))
 			{
 				return true;
 			}
-				
 		}
 	}
 	return false;
@@ -178,26 +173,32 @@ bool StudentWorld:: exitFound(Actor* actor)
 
 bool StudentWorld::citizensGone()
 {
-	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
-	{
-		if ((*it)->isCitizen())
-		{
-			return false;
-		}
-	}
-	return true;
+	return numCitizens == 0;
 }
 
+bool StudentWorld::overlapGoodie(Actor* actor)
+{
+	int x = actor->getX();
+	int y = actor->getY();
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->pickUpGoodie())
+		{
+			if (actor->canBePicked())
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
-//bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
-//{
-//	// check if actor b blocks actor a, if yes, return true, otherwise, return false
-//	return (distance(b.getX(), a.getX()) < SPRITE_WIDTH-5 &&
-//		distance(b.getY(), a.getY()) < SPRITE_HEIGHT-5);
-//}
+void StudentWorld::levelFinished()
+{
+	game_level_finished = true;
+}
 
-
-bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
+bool StudentWorld::blockingMovement(const Actor& a, const Actor &b)
 {
 	//check if actor b blocks actor a, if yes, return true, otherwise, return false
 	switch (a.getDirection())
@@ -229,29 +230,15 @@ bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
 
 int StudentWorld::move()
 {
-    // This code is here merely to allow the game to build, run, and terminate after you hit enter.
-    // Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
-    //decLives();
+	// This code is here merely to allow the game to build, run, and terminate after you hit enter.
+	// Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
+	//decLives();
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->overlap(*m_player))
+		if ((*it)->overlap(*m_player))  // if actor overlap with player, add goodie
 		{
-
-			if ((*it)->isLandmineGoodie())
-			{
-				m_player->addMine(2);
-				(*it)->setState(false);
-			}
-			else if ((*it)->isVaccineGoodie())
-			{
-				m_player->addVaccine(1);
-				(*it)->setState(false);
-			}
-			else if ((*it)->isGasCanGoodie())
-			{
-				m_player->addFlame(5);
-				(*it)->setState(false);
-			}
+			(*it)->addGoodie();  // only add goodies for landmine goodie,vaccine goodie,gas can goodie, 
+								 // for other actors, addGoodie do nothing
 		}
 
 		(*it)->doSomething();
@@ -262,19 +249,19 @@ int StudentWorld::move()
 	ostringstream oss;
 	//oss.fill('0');
 	oss << "Score: " << score << "  Level: " << getLevel()
-		<< "  Lives: " << numLives << "  Vaccines: " << m_player->getNumVaccine()
-		<< "  Flames: " << m_player->getNumFlame()
-		<< "  Mines: " << m_player->getNumMine()
+		<< "  Lives: " << numLives << "  Vaccines: " << numVaccines
+		<< "  Flames: " << numFlamethrowers
+		<< "  Mines: " << numLandmines
 		<< "  Infected: " << numInfected;
-
+	//numVaccines, numLandmines, numFlamethrowers;
 	setGameStatText(oss.str());
 
-	if (!m_player->isAlive()) 
+	if (!m_player->isAlive())
 		return GWSTATUS_PLAYER_DIED;
 
 	removeDeadActors();
-    
-	if (m_player->foundExit())
+
+	if (game_level_finished)
 		return GWSTATUS_FINISHED_LEVEL;
 
 	return GWSTATUS_CONTINUE_GAME;
@@ -289,7 +276,7 @@ void StudentWorld::removeDeadActors()
 {
 	stack<int> removeItems;
 
-	for (int i = 0; i< m_actors.size(); i++)
+	for (int i = 0; i < m_actors.size(); i++)
 	{
 		if (!m_actors[i]->isAlive())
 			removeItems.push(i);
@@ -319,4 +306,47 @@ void StudentWorld::cleanUp()
 	//	delete m_player;
 	m_player = nullptr;
 	score = numLives = numInfected = 0;
+}
+
+void StudentWorld::addFlame()
+{
+	numFlamethrowers += 5;
+	cout << " *** addFlame " << numFlamethrowers << endl;
+}
+
+void StudentWorld::addMine()
+{
+	numLandmines += 2;
+	cout << "  *** addMine " << numLandmines << endl;
+}
+void StudentWorld::addVaccine()
+{
+	numVaccines++;
+	cout << " ***  addVaccine " << numVaccines << endl;
+}
+
+int StudentWorld::getNumFlame()
+{
+	return numFlamethrowers;
+}
+int StudentWorld::getNumMine()
+{
+	return numLandmines;
+}
+int StudentWorld::getNumVaccine()
+{
+	return numVaccines;
+}
+
+void StudentWorld::decreaseFlame()
+{
+	numFlamethrowers--;
+}
+void StudentWorld::decreaseMine()
+{
+	numLandmines--;
+}
+void StudentWorld::decreaseVaccine()
+{
+	numVaccines--;
 }
