@@ -3,9 +3,10 @@
 
 #include "GraphObject.h"
 #include "Level.h"
+#include <string>
 
-// Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
-class StudentWorld;
+	// Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
+	class StudentWorld;
 class Actor :public GraphObject
 {
 public:
@@ -19,43 +20,34 @@ public:
 	void setState(bool state);
 	bool overlap(const Actor &other);
 	bool overlap(const double x, const double y);
-	virtual bool blockingFlame() { return false; }
-	virtual bool blockingActor() { return false; }
+	double distanceTo(const Actor &other);
+	bool boundingBoxOverlap(const Actor &other);
 	virtual bool flammable() { return false; }
 	virtual bool canExit() { return false; }
-	virtual void addGoodie() {};
-	virtual bool pickUpGoodie() = 0;
-	virtual bool canBePicked() = 0;
-
+	//virtual void pickUpGoodieIfAppropriate(Goodie* g) { }
+	// define behavior of actors, set the default value to the behavior for most of actors
+	// can be overwriten by derived class if necessary
+	virtual bool blockingFlame() { return false; }
+	virtual bool blockingVomit() { return false; }
+	virtual bool blockingOtherObject() { return true; }
+	virtual bool canBeDamagedByFlame() { return true; }
+	virtual bool canBeInfectedByVomit() { return false; }
+	std::string name;
 private:
 	StudentWorld* m_world;
 	bool m_alive;
 };
 
-class People :public Actor
-{
-public:
-	People(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
-	~People();
-	void doSomething();
-	void isInfected();
-	virtual bool foundExit() = 0;
-	bool canExit() { return true; }
-private:
-	bool m_infected;
-};
-
-class Penelope:public People
+class Penelope :public Actor
 {
 public:
 	Penelope(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Penelope();
 	void doSomething();
 	void createLandmine();
-	virtual bool foundExit();
-	bool blockingActor() { return true; }
-	bool pickUpGoodie() { return true; }
-
+	virtual bool canBeInfectedByVomit() { return true; }
+	bool canExit() { return true; }
+//	virtual void pickUpGoodieIfAppropriate(Goodie* g);
 
 private:
 	//int numLandmines, numFlamethrowers, numVaccines, m_infectionCount;
@@ -69,18 +61,34 @@ class Wall :public Actor
 public:
 	Wall(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	bool blockingFlame() { return true; }
-	bool blockingActor() { return true; }
+	bool canBeDamagedByFlame() { return false; }
+
 	void doSomething();
 	~Wall();
 };
-class Citizen :public People
+class Citizen :public Actor
 {
 public:
 	Citizen(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Citizen();
 	void doSomething();
-	bool blockingActor() { return true; }
-	virtual bool foundExit();
+	bool canExit() { return true; }
+	void createZombie();
+
+	bool canBeInfectedByVomit() { return true; }
+	bool blockingOtherObject() { return true; }
+	bool blockingFlame() { return false; }
+	bool canBeDamagedByFlame() { return true; }
+
+
+private:
+	bool followPenelope();
+	void runAwayZombie();
+	bool move_location(double new_x, double new_y);
+	bool move_in_same_row(double delta_x);
+	bool move_in_same_column(double delta_y);
+	int infectionCount;
+	int tickCount;
 };
 
 class Exit :public Actor
@@ -88,37 +96,39 @@ class Exit :public Actor
 public:
 	Exit(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	bool blockingFlame() { return true; }
+	virtual bool blockingOtherObject() { return false; }
+	bool canBeDamagedByFlame() { return false; }
 	~Exit();
 	void doSomething();
+private:
+	bool overlapCitizen();
 };
 
-class Throwables : public Actor
-{
-public:
-	Throwables(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
-	~Throwables();
-	void doSomething();
-	int getNumTicks();
-	void setNumTicks(int num);
-private:
-	int numTicks;
-};
-class Flame :public Throwables
+class Flame :public Actor
 {
 public:
 	Flame(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	bool flammable() { return true; }
+	bool blockingOtherObject() { return false; }
+	bool canBeDamagedByFlame() { return false; }
+	bool canBeInfectedByVomit() { return false; }
 	~Flame();
 	void doSomething();
+private:
+	int numTicks;
+
 };
 
 class Goodie : public Actor
 {
 public:
 	Goodie(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
+	bool canBeDamagedByFlame() { return true; }
+	bool canBeInfectedByVomit() { return false; }
+	bool blockingOtherObject() { return false; }
 	~Goodie();
-	void doSomething();
-	bool canBePicked() { return true; }
+	virtual void doSomething() = 0;
+	//bool isGoodie();
 };
 
 
@@ -128,18 +138,20 @@ public:
 	GasCanGoodie(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~GasCanGoodie();
 	void doSomething();
-	virtual void addGoodie();
 };
 
 class Landmine :public Actor
 {
 public:
 	Landmine(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
+	bool blockingFlame() { return false; }
+	bool canBeInfectedByVomit() { return false; }
+	bool blockingOtherObject() { return false; }
+
 	~Landmine();
 	void doSomething();
 private:
-	bool m_active;
-	int safetyTicks;
+	int m_safetyticks;
 
 };
 
@@ -149,7 +161,6 @@ public:
 	LandmineGoodie(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~LandmineGoodie();
 	void doSomething();
-	virtual void addGoodie();
 };
 
 class Pit :public Actor
@@ -157,6 +168,10 @@ class Pit :public Actor
 public:
 	Pit(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Pit();
+	bool blockingFlame() { return false; }
+	bool blockingOtherObject() { return true; }
+	bool canBeDamagedByFlame() { return false; }
+	bool canBeInfectedByVomit() { return false; }
 	void doSomething();
 };
 
@@ -165,6 +180,11 @@ class Zombie :public Actor
 public:
 	Zombie(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Zombie();
+	bool canBeInfectedByVomit() { return false; }
+	bool blockingOtherObject() { return true; }
+	bool blockingFlame() { return false; }
+	bool canBeDamagedByFlame() { return true; }
+
 	void doSomething() = 0;
 };
 
@@ -184,11 +204,15 @@ public:
 	void doSomething();
 };
 
-class Vomit :public Throwables
+class Vomit :public Actor
 {
 public:
 	Vomit(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
 	~Vomit();
+	bool blockingOtherObject() { return false; }
+	bool canBeDamagedByFlame() { return false; }
+	bool canBeInfectedByVomit() { return false; }
+
 	void doSomething();
 };
 
@@ -196,8 +220,8 @@ class VaccineGoodie :public Goodie
 {
 public:
 	VaccineGoodie(int imageID, double startX = 0, double startY = 0, Direction dir = 0, int depth = 0, double size = 1.0);
+
 	~VaccineGoodie();
 	void doSomething();
-	virtual void addGoodie();
 };
 #endif // ACTOR_H_

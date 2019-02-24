@@ -2,13 +2,14 @@
 #include "StudentWorld.h"
 #include "SoundFX.h"
 
-const double STEP_SIZE = 2;
+	const double STEP_SIZE = 2;
 const double OVERLAP_LIMIT = 100;
 
 Actor::Actor(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:GraphObject(imageID, startX, startY, dir, depth, size)
 {
 	m_alive = true;
+	name = "";
 }
 
 Actor::~Actor()
@@ -22,6 +23,20 @@ void Actor::move(double newX, double newY)
 void Actor::setWorld(StudentWorld* world)
 {
 	m_world = world;
+}
+
+bool Actor::boundingBoxOverlap(const Actor &other)
+{
+	// check if  bounding box this object overlap with the onde of other
+	return ((distance(getX(), other.getX()) < SPRITE_WIDTH) &&
+		(distance(getY(), other.getY()) < SPRITE_HEIGHT));
+
+}
+
+double Actor::distanceTo(const Actor &other)
+{
+	// find the distance to other actor
+	return sqrt(pow(getX() - other.getX(), 2) + pow(getY() - other.getY(), 2));
 }
 
 StudentWorld* Actor::getWorld()
@@ -57,34 +72,13 @@ bool Actor::overlap(const Actor &other)
 	return (pow(getX() - other.getX(), 2) + pow(getY() - other.getY(), 2) < OVERLAP_LIMIT);
 }
 
-People::People(int imageID, double startX, double startY, Direction dir, int depth, double size)
-	:People(imageID, startX, startY, dir, depth, size)
-{
-	m_infected = false;
-}
-
-People::~People()
-{
-
-}
-void People::doSomething()
-{
-
-}
-
-void People:: isInfected()
-{
-	m_infected = true;
-}
-
 Penelope::Penelope(int imageID, double startX, double startY, Direction dir, int depth, double size)
-	:People(imageID, startX, startY, dir, depth, size)
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
 	m_infected = false;
 	m_infectionCount = 0;
 	setState(true);
 }
-
 
 Penelope::~Penelope()
 {
@@ -127,26 +121,11 @@ void Penelope::createFlame()
 		if (getWorld()->overlapWallExit(px[i], py[i]))break;
 		getWorld()->addActor(new Flame(IID_FLAME, px[i], py[i]));
 	}
-
-
 }
 
 void Penelope::createLandmine()
 {
 	getWorld()->addActor(new Landmine(IID_LANDMINE, getX(), getY()));
-}
-
-bool Penelope::foundExit()
-{
-	if (getWorld()->exitFound(this))
-	{
-		if (getWorld()->citizensGone()) {
-			getWorld()->levelFinished();
-			return true;
-		}
-			
-	}
-	return false;
 }
 
 void Penelope::doSomething()
@@ -223,7 +202,7 @@ void Penelope::doSomething()
 Wall::Wall(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "wall";
 }
 
 Wall::~Wall()
@@ -239,7 +218,7 @@ void Wall::doSomething()
 Exit::Exit(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "exit";
 }
 
 Exit::~Exit()
@@ -249,13 +228,29 @@ Exit::~Exit()
 
 void Exit::doSomething()
 {
+	if (overlap(getWorld()->getPlayer()))  // if overlap with player
+	{
+		if (getWorld()->citizensGone())
+			getWorld()->setGameLevelFinished();
+	}
 
+}
+
+bool Exit::overlapCitizen()
+{
+	if (overlap(getWorld()->getPlayer()))  // if overlap with player
+	{
+		if (getWorld()->citizensGone())
+			getWorld()->setGameLevelFinished();
+	}
+
+	return false;
 }
 
 Pit::Pit(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "pit";
 }
 
 Pit::~Pit()
@@ -268,35 +263,11 @@ void Pit::doSomething()
 
 }
 
-Throwables::Throwables(int imageID, double startX, double startY, Direction dir, int depth, double size)
+Flame::Flame(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	: Actor(imageID, startX, startY, dir, depth, size)
 {
 	numTicks = 0;
-}
-
-Throwables::~Throwables()
-{
-
-}
-
-void Throwables::doSomething()
-{
-	
-}
-
-void Throwables::setNumTicks(int num)
-{
-	numTicks += num;
-}
-
-int Throwables::getNumTicks()
-{
-	return numTicks;
-}
-Flame::Flame(int imageID, double startX, double startY, Direction dir, int depth, double size)
-	: Throwables(imageID, startX, startY, dir, depth, size)
-{
-	
+	name = "flame";
 }
 
 Flame::~Flame()
@@ -306,37 +277,31 @@ Flame::~Flame()
 
 void Flame::doSomething()
 {
-	if (getNumTicks() >= 2)
+	if (numTicks >= 2)
 		setState(false);
-	setNumTicks(1);
+	numTicks++;
 }
 
 Vomit::Vomit(int imageID, double startX, double startY, Direction dir, int depth, double size)
-	:Throwables(imageID, startX, startY, dir, depth, size)
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "vomit";
 }
 
 Vomit::~Vomit()
 {
-	
+
 }
 
 void Vomit::doSomething()
 {
-	if (!isAlive())
-		return;
-	if (getNumTicks() >= 2)
-	{
-		setState(false);
-		return;
-	}
+
 }
 
 Goodie::Goodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "goodie";
 }
 
 Goodie::~Goodie()
@@ -344,23 +309,15 @@ Goodie::~Goodie()
 
 }
 
-void Goodie::doSomething()
-{
-	if (!isAlive())
-		return;
-	if (getWorld()->overlapGoodie(this))
-	{
-		getWorld()->increaseScore(50);
-		setState(false);
-		getWorld()->playSound(SOUND_GOT_GOODIE);
-	}
-}
-
+//bool Goodie::isGoodie()
+//{
+//	return true;
+//}
 
 VaccineGoodie::VaccineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Goodie(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "vaccine goodie";
 }
 
 VaccineGoodie::~VaccineGoodie()
@@ -370,18 +327,21 @@ VaccineGoodie::~VaccineGoodie()
 
 void VaccineGoodie::doSomething()
 {
-
+	if (!isAlive())
+		return;
+	if (overlap(getWorld()->getPlayer()))
+	{
+		getWorld()->increaseScore(50);
+		getWorld()->addVaccine();
+		setState(false);
+		getWorld()->playSound(SOUND_GOT_GOODIE);
+	}
 }
-
-void VaccineGoodie::addGoodie()
-{
-	getWorld()->addVaccine();
-	setState(false);
-};
 
 GasCanGoodie::GasCanGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Goodie(imageID, startX, startY, dir, depth, size)
 {
+	name = "gas goodie";
 }
 
 GasCanGoodie::~GasCanGoodie()
@@ -391,17 +351,21 @@ GasCanGoodie::~GasCanGoodie()
 
 void GasCanGoodie::doSomething()
 {
+	if (!isAlive())
+		return;
+	if (overlap(getWorld()->getPlayer()))
+	{
+		getWorld()->increaseScore(50);
+		getWorld()->addFlame();
+		setState(false);
+		getWorld()->playSound(SOUND_GOT_GOODIE);
+	}
 }
-
-void GasCanGoodie::addGoodie()
-{
-	getWorld()->addFlame();
-	setState(false);
-};
 
 LandmineGoodie::LandmineGoodie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Goodie(imageID, startX, startY, dir, depth, size)
 {
+	name = "landmine goodie";
 }
 
 LandmineGoodie::~LandmineGoodie()
@@ -410,19 +374,21 @@ LandmineGoodie::~LandmineGoodie()
 
 void LandmineGoodie::doSomething()
 {
+	if (!isAlive())
+		return;
+	if (overlap(getWorld()->getPlayer()))
+	{
+		getWorld()->increaseScore(50);
+		getWorld()->addMine();
+		setState(false);
+		getWorld()->playSound(SOUND_GOT_GOODIE);
+	}
 }
-
-void LandmineGoodie::addGoodie()
-{
-	getWorld()->addMine();
-	setState(false);
-};
 
 Landmine::Landmine(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
-	m_active = false;
-	safetyTicks = 30;
+	m_safetyticks = 0;
 }
 
 Landmine::~Landmine()
@@ -433,29 +399,38 @@ void Landmine::doSomething()
 {
 	if (!isAlive())
 		return;
-	while (!m_active)
+	if (m_safetyticks > 0)
 	{
-		safetyTicks--;
-		if (safetyTicks == 0)
+		m_safetyticks--;
+		if (m_safetyticks == 0)
 		{
-			m_active = true;
 			return;
 		}
 	}
-	if (//overlap wtih Penelope or citizen)
+	
+	if (overlap((getWorld()->getPlayer())))
 	{
 		setState(false);
-		playSound(SOUND_LANDMINE_EXPLODE);
-		createFlame();
-		//create pit
+		getWorld()->playSound(SOUND_LANDMINE_EXPLODE);
+		getWorld()->addActor(new Flame(IID_FLAME, getX(), getY()));
+		getWorld()->addActor(new Flame(IID_FLAME, getX() + SPRITE_WIDTH, getY()));
+		getWorld()->addActor(new Flame(IID_FLAME, getX() - SPRITE_WIDTH, getY()));
+		getWorld()->addActor(new Flame(IID_FLAME, getX(), getY() + SPRITE_HEIGHT));
+		getWorld()->addActor(new Flame(IID_FLAME, getX(), getY() - SPRITE_HEIGHT));
+		getWorld()->addActor(new Flame(IID_FLAME, getX() - SPRITE_WIDTH, getY() - SPRITE_HEIGHT));
+		getWorld()->addActor(new Flame(IID_FLAME, getX() + SPRITE_WIDTH, getY() - SPRITE_HEIGHT));
+		getWorld()->addActor(new Flame(IID_FLAME, getX() + SPRITE_WIDTH, getY() + SPRITE_HEIGHT));
+		getWorld()->addActor(new Flame(IID_FLAME, getX() - SPRITE_WIDTH, getY() + SPRITE_HEIGHT));
+		getWorld()->addActor(new Pit(IID_PIT, getX(), getY()));
 	}
+		
 
 }
 
 Zombie::Zombie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Actor(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "zombie";
 }
 
 Zombie::~Zombie()
@@ -465,7 +440,7 @@ Zombie::~Zombie()
 DumbZombie::DumbZombie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Zombie(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "dumb zombie";
 }
 
 DumbZombie::~DumbZombie()
@@ -502,12 +477,11 @@ void DumbZombie::doSomething()
 SmartZombie::SmartZombie(int imageID, double startX, double startY, Direction dir, int depth, double size)
 	:Zombie(imageID, startX, startY, dir, depth, size)
 {
-
+	name = "smart zombie";
 }
 
 SmartZombie::~SmartZombie()
 {
-
 }
 
 void SmartZombie::doSomething()
@@ -537,9 +511,12 @@ void SmartZombie::doSomething()
 }
 
 Citizen::Citizen(int imageID, double startX, double startY, Direction dir, int depth, double size)
-	:People(imageID, startX, startY, dir, depth, size)
+	:Actor(imageID, startX, startY, dir, depth, size)
 {
+	infectionCount = 0;
+	tickCount = 0;
 
+	name = "citizon";
 }
 
 Citizen::~Citizen()
@@ -549,19 +526,201 @@ Citizen::~Citizen()
 
 void Citizen::doSomething()
 {
+	if (!isAlive()) return;
+	if (infectionCount > 0) infectionCount++;
+	if (infectionCount >= 500) // becomes a zombie
+	{
+		setState(false);
+		getWorld()->playSound(SOUND_ZOMBIE_BORN);
+		getWorld()->decreaseScore(1000);
+		createZombie();
+		return;
+	}
+
+	tickCount++;
+	if (tickCount == 2)  // the citizen will become paralyzed every other tick
+	{
+		tickCount = 0;
+		return;
+	}
+
+	double dist_p = distanceTo(getWorld()->getPlayer()); // distance to Penelope
+	double dist_z = getWorld()->DistanceToNearestZombie(*this, getX(), getY());
+	if ((dist_p < dist_z || getWorld()->getNumZombie() == 0) && dist_p <= 80)
+		if (followPenelope()) return;
+
+	if (dist_z <= 80)
+		runAwayZombie();
+}
+
+bool Citizen::move_location(double new_x, double new_y)
+{
+	// move to new location new_x, new_y if possible, if yes return true. otherwise, return false
+
+	bool doesMove = false;
+	double delta_x = new_x - getX();
+	double delta_y = new_y - getY();
+
+	if (!getWorld()->blockingMovement(*this, new_x, new_y))
+	{
+		moveTo(new_x, new_y);
+		doesMove = true;
+	}
+
+	if (doesMove)  // reset direction
+	{
+		if (delta_x > 0)
+			setDirection(right);
+		else if (delta_x < 0)
+			setDirection(left);
+
+		if (delta_y > 0)
+			setDirection(up);
+		else if (delta_y < 0)
+			setDirection(down);
+	}
+
+	return doesMove;
+}
+
+bool Citizen::move_in_same_row(double delta_x)
+{
+	// move to new location getX() + delta_x, getY() if possible, if yes return true. otherwise, return false
+	return move_location(getX() + delta_x, getY());
+}
+
+bool Citizen::move_in_same_column(double delta_y)
+{
+	// move to new location getX(), getY() + delta_y if possible, if yes return true. otherwise, return false
+	return move_location(getX(), getY() + delta_y);
 
 }
 
-bool Citizen::foundExit()
+bool Citizen::followPenelope()
 {
-	if (getWorld()->exitFound(this))
+	// return true if can move to penelope
+	// return false if blocking movement
+	double dist_x = getWorld()->getPlayer().getX() - getX();
+	double dist_y = getWorld()->getPlayer().getY() - getY();
+
+	if (dist_x == 0)  // at same column
 	{
-		getWorld()->increaseScore(500);
-		setState(false);
-		getWorld()->playSound(SOUND_CITIZEN_SAVED);
-		return true;
+		if (dist_y > 0)
+		{
+			if (move_in_same_column(2.0)) return true;
+		}
+		else
+		{
+			if (move_in_same_column(-2.0)) return true;
+		}
 	}
+	else if (dist_y == 0)   // at same row
+	{
+		if (dist_x > 0)
+		{
+			if (move_in_same_row(2.0)) return true;
+		}
+		else
+		{
+			if (move_in_same_row(-2.0)) return true;
+		}
+	}
+
+	// not on the same row or column
+
+	int option = randInt(1, 2);
+	double delta_x = (dist_x > 0) ? 2.0 : -2.0;
+	double delta_y = (dist_y > 0) ? 2.0 : -2.0;
+
+
+	if (option == 1)  // move in x direction
+	{
+		if (move_in_same_row(delta_x)) return true;
+		if (move_in_same_column(delta_y)) return true;
+	}
+	else
+	{
+		if (move_in_same_column(delta_y)) return true;
+		if (move_in_same_row(delta_x)) return true;
+	}
+
 	return false;
+
+}
+
+void Citizen::runAwayZombie()
+{
+	double dist = getWorld()->DistanceToNearestZombie(*this, getX(), getY());
+	double dist1 = 0, dist2 = 0, dist3 = 0, dist4 = 0;
+	switch (getDirection())
+	{
+	case right:
+		if (!getWorld()->blockingMovement(*this, getX() + 2, getY()))
+		{
+			double dist1 = getWorld()->DistanceToNearestZombie(*this, getX() + 2, getY());
+		}
+		break;
+	case left:
+		if (!getWorld()->blockingMovement(*this, getX() - 2, getY()))
+		{
+			double dist2 = getWorld()->DistanceToNearestZombie(*this, getX() - 2, getY());
+		}
+		break;
+	case up:
+		if (!getWorld()->blockingMovement(*this, getX(), getY() + 2))
+		{
+			double dist3 = getWorld()->DistanceToNearestZombie(*this, getX(), getY() + 2);
+		}
+		break;
+	case down:
+		if (!getWorld()->blockingMovement(*this, getX() + 2, getY()))
+		{
+			double dist4 = getWorld()->DistanceToNearestZombie(*this, getX(), getY() - 2);
+		}
+
+		break;
+	}
+	double arr[] = { dist, dist1, dist2, dist3, dist4 };
+	double max = arr[0];
+	for (int i = 1; i < 5; i++)
+	{
+		if (arr[i] > max)
+			max = arr[i];
+	}
+	if (max == dist)
+		return;
+	else if (max == dist1)
+	{
+		moveTo(getX() + 2, getY());
+		return;
+	}
+	else if (max == dist2)
+	{
+		moveTo(getX() - 2, getY());
+		return;
+	}
+	else if (max == dist3)
+	{
+		moveTo(getX(), getY() + 2);
+		return;
+	}
+	else if (max == dist4)
+	{
+		moveTo(getX(), getY() - 2);
+		return;
+	}
+}
+
+void Citizen::createZombie()
+{
+	// 70 % chance create a dumb zombie, 30% chance a smart zombie
+	int ch = randInt(1, 10);
+
+	if (ch <= 3)
+		getWorld()->addActor(new SmartZombie(IID_ZOMBIE, getX(), getY()));
+	else
+		getWorld()->addActor(new DumbZombie(IID_ZOMBIE, getX(), getY()));
+
 }
 
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp

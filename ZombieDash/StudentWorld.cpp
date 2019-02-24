@@ -6,7 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <stack>
-using namespace std;
+	using namespace std;
 
 string intToString(int k)
 {
@@ -27,8 +27,9 @@ StudentWorld::StudentWorld(string assetPath)
 {
 	m_player = nullptr;
 	score = numLives = numInfected = numCitizens = 0;
-	numVaccines = numLandmines = numFlamethrowers = 0;
+	numVaccines = numLandmines = numFlamethrowers = numZombies = 0;
 	game_level_finished = false;
+	m_score = 0;
 }
 
 StudentWorld::~StudentWorld()
@@ -37,13 +38,13 @@ StudentWorld::~StudentWorld()
 }
 int StudentWorld::init()
 {
-	Level lev(assetPath());
-	loadLevelFile(lev);
+	loadLevelFile();
 	return GWSTATUS_CONTINUE_GAME;
 }
 
-void StudentWorld::loadLevelFile(Level &lev)
+void StudentWorld::loadLevelFile()
 {
+	Level lev(assetPath());
 	int level = getLevel();
 	string levelFile = "level" + intToString(level) + ".txt";
 	Level::LoadResult result = lev.loadLevel(levelFile);
@@ -125,17 +126,44 @@ void StudentWorld::createActors(Level &lev)
 
 void StudentWorld::moveActor(Actor &a, double newX, double newY)
 {
-
+	int count = 0;
 	for (vector<Actor*>::iterator b = m_actors.begin(); b != m_actors.end(); b++)
 	{
 		if (*b == &a) continue;  // skip itself
 		if (!(*b)->isAlive()) continue;
-
+		count++;
 
 		if ((*b)->flammable() && (*b)->overlap(a))
 			a.setState(false);  // actor a is died due to flame
-		else if ((*b)->blockingActor())
-			if (blockingMovement(a, *(*b))) return;
+		else if ((*b)->blockingOtherObject())
+			if (blockingMovemenet(a, *(*b)))
+				return;
+
+		/*
+				switch ((*b)->getType())
+				{
+				case  Actor::landmine_goodie:
+				case  Actor::gas_can_goodie:
+				case  Actor::vaccine_goodie:
+					break;
+				case  Actor::exit:   // allow to overlap exit
+					break;
+				case Actor::landmine:
+					a.moveTo(newX, newY);
+					break;
+				case  Actor::flame:
+					if ((*b)->overlap(a))
+					{
+						a.setState(false);  // actor a is died due to flame
+						break;
+					}
+					break;
+				default:
+					if (blockingMovemenet(a, *(*b))) return; // check if actor a blocks actor a, if yes, actor a cannot move, just return
+					break;
+				}
+
+				*/
 	}
 
 	// reach here, no actors block actor a, so a move to new location
@@ -154,51 +182,21 @@ bool StudentWorld::overlapWallExit(const double x, const double y)
 	return false;
 }
 
-bool StudentWorld::exitFound(Actor* actor)
-{
-	int x = actor->getX();
-	int y = actor->getY();
-	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
-	{
-		if ((*it)->canExit())
-		{
-			if ((*it)->overlap(*actor))
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
 bool StudentWorld::citizensGone()
 {
 	return numCitizens == 0;
 }
 
-bool StudentWorld::overlapGoodie(Actor* actor)
-{
-	int x = actor->getX();
-	int y = actor->getY();
-	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
-	{
-		if ((*it)->pickUpGoodie())
-		{
-			if (actor->canBePicked())
-			{
-				return true;
-			}
-		}
-	}
-	return false;
-}
 
-void StudentWorld::levelFinished()
-{
-	game_level_finished = true;
-}
+//bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
+//{
+//	// check if actor b blocks actor a, if yes, return true, otherwise, return false
+//	return (distance(b.getX(), a.getX()) < SPRITE_WIDTH-5 &&
+//		distance(b.getY(), a.getY()) < SPRITE_HEIGHT-5);
+//}
 
-bool StudentWorld::blockingMovement(const Actor& a, const Actor &b)
+
+bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
 {
 	//check if actor b blocks actor a, if yes, return true, otherwise, return false
 	switch (a.getDirection())
@@ -206,23 +204,40 @@ bool StudentWorld::blockingMovement(const Actor& a, const Actor &b)
 	case GraphObject::left:
 		if (b.getX() > a.getX()) return false;
 		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT) return false;
-		if ((a.getX() - b.getX()) < SPRITE_WIDTH + 4) return true;
+		if ((a.getX() - b.getX()) < SPRITE_WIDTH + 4)
+			return true;
 		return false;
 	case GraphObject::right:
 		if (b.getX() < a.getX()) return false;
 		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT) return false;
-		if ((b.getX()) - a.getX() < SPRITE_WIDTH + 4) return true;
+		if ((b.getX()) - a.getX() < SPRITE_WIDTH + 4)
+			return true;
 		return false;
 	case GraphObject::down:
 		if (b.getY() > a.getY()) return false;
 		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH) return false;
-		if ((a.getY() - b.getY()) < SPRITE_HEIGHT + 4) return true;
+		if ((a.getY() - b.getY()) < SPRITE_HEIGHT + 4)
+			return true;
 		return false;
 	case GraphObject::up:
 		if (b.getY() < a.getY()) return false;
 		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH) return false;
-		if ((b.getY() - a.getY()) < SPRITE_HEIGHT + 4) return true;
+		if ((b.getY() - a.getY()) < SPRITE_HEIGHT + 4)
+			return true;
 		return false;
+	}
+
+	return false;
+}
+
+bool StudentWorld::blockingMovement(const Actor & actor, double new_x, double new_y)
+{
+	// check if any object block actor moving to new location new_x, new_y
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if (*it == &actor) continue;  // except ifself
+		if ((*it)->blockingOtherObject() && (*it)->boundingBoxOverlap(actor))
+			return true;
 	}
 
 	return false;
@@ -235,12 +250,6 @@ int StudentWorld::move()
 	//decLives();
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->overlap(*m_player))  // if actor overlap with player, add goodie
-		{
-			(*it)->addGoodie();  // only add goodies for landmine goodie,vaccine goodie,gas can goodie, 
-								 // for other actors, addGoodie do nothing
-		}
-
 		(*it)->doSomething();
 	}
 
@@ -301,11 +310,10 @@ void StudentWorld::cleanUp()
 		delete *it;
 	}
 	m_actors.clear();
-
-	//if (m_player != nullptr)  // not need to delete m_player because it is also included in m_actors, already deleted in above loop
-	//	delete m_player;
-	m_player = nullptr;
-	score = numLives = numInfected = 0;
+	m_player = nullptr; // not need to delete m_player because it is also included in m_actors, already deleted in above loop
+	score = numLives = numInfected = numCitizens = 0;
+	numVaccines = numLandmines = numFlamethrowers = 0;
+	game_level_finished = false;
 }
 
 void StudentWorld::addFlame()
@@ -325,6 +333,11 @@ void StudentWorld::addVaccine()
 	cout << " ***  addVaccine " << numVaccines << endl;
 }
 
+void StudentWorld::addZombie()
+{
+	numZombies++;
+}
+
 int StudentWorld::getNumFlame()
 {
 	return numFlamethrowers;
@@ -338,6 +351,11 @@ int StudentWorld::getNumVaccine()
 	return numVaccines;
 }
 
+int StudentWorld::getNumZombie()
+{
+	return numZombies;
+}
+
 void StudentWorld::decreaseFlame()
 {
 	numFlamethrowers--;
@@ -349,4 +367,35 @@ void StudentWorld::decreaseMine()
 void StudentWorld::decreaseVaccine()
 {
 	numVaccines--;
+}
+
+Penelope &StudentWorld::getPlayer()
+{
+	return *m_player;
+}
+
+void StudentWorld::setGameLevelFinished()
+{
+	game_level_finished = true;
+}
+
+void StudentWorld::decreaseScore(int n)
+{
+	m_score -= n;
+}
+
+double StudentWorld::DistanceToNearestZombie(const Actor &actor, int x, int y)
+{
+	return pow(actor.getX() - x, 2) + pow(actor.getY() - y, 2);
+}
+
+bool StudentWorld::overlapCitizen(const Actor &actor)
+{
+	// check if actor overlap with a citizen, if yes, return true, otherwise return false
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->canExit() && (*it)->overlap(actor))
+			return true;
+	}
+	return false;
 }

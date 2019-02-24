@@ -5,7 +5,7 @@
 #include <string>
 #include "Actor.h"
 #include <vector>
-using namespace std;
+	using namespace std;
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
 inline
@@ -25,29 +25,35 @@ public:
 	void moveActor(Actor & actor, double newX, double newY);
 	void addActor(Actor*);
 	bool overlapWallExit(const double x, const double y);
-	bool exitFound(Actor* actor);
 	bool citizensGone();
 	void addFlame();
 	void addMine();
 	void addVaccine();
+	void addZombie();
 	void decreaseFlame();
 	void decreaseMine();
 	void decreaseVaccine();
+	void setGameLevelFinished();
+	void decreaseScore(int n);
 	int getNumFlame();
 	int getNumMine();
 	int getNumVaccine();
-	void levelFinished();
-	bool overlapGoodie(Actor* actor);
+	int getNumZombie();
+	Penelope &getPlayer();
+	double DistanceToNearestZombie(const Actor &actor, int x, int y);
+	bool overlapCitizen(const Actor &actor);
+	bool blockingMovement(const Actor & actor, double new_x, double new_y);
 private:
-	void loadLevelFile(Level &lev);
+	void loadLevelFile();
 	void createActors(Level &lev);
 	void removeDeadActors();
-	bool blockingMovement(const Actor& a, const Actor &b);
+	bool blockingMovemenet(const Actor& a, const Actor &b);
 	Penelope *m_player;
 	vector<Actor*> m_actors;  // contains all actor, including m_player
 	int score, numLives, numInfected;
-	int numCitizens, numVaccines, numLandmines, numFlamethrowers;
+	int numCitizens, numVaccines, numLandmines, numFlamethrowers, numZombies;
 	bool game_level_finished;
+	int m_score;
 };
 
 #endif // STUDENTWORLD_H_
