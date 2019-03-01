@@ -5,7 +5,7 @@
 #include <string>
 #include "Actor.h"
 #include <vector>
-	using namespace std;
+using namespace std;
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
 inline
@@ -22,38 +22,32 @@ public:
 	virtual int init();
 	virtual int move();
 	virtual void cleanUp();
-	void moveActor(Actor & actor, double newX, double newY);
+	void moveActor(Actor *actor, double newX, double newY);
 	void addActor(Actor*);
 	bool overlapWallExit(const double x, const double y);
+	bool citizenFoundExit(const Actor *actor);
+	void overlapPitFlame(const Actor *actor);
+	void overlapVomit(const Actor *actor);
+	bool overlapLandmine(Actor *actor);
 	bool citizensGone();
-	void addFlame();
-	void addMine();
-	void addVaccine();
-	void addZombie();
-	void decreaseFlame();
-	void decreaseMine();
-	void decreaseVaccine();
 	void setGameLevelFinished();
-	void decreaseScore(int n);
-	int getNumFlame();
-	int getNumMine();
-	int getNumVaccine();
+	void decreaseCitizen();
 	int getNumZombie();
-	Penelope &getPlayer();
-	double DistanceToNearestZombie(const Actor &actor, int x, int y);
-	bool overlapCitizen(const Actor &actor);
-	bool blockingMovement(const Actor & actor, double new_x, double new_y);
+	Penelope *player();
+	double distanceToNearestZombie(const Actor *actor);
+	double distanceToNearestZombie(const double x, const double y);
+	double distanceToNearestPerson(const double x, const double y);
+	Actor *findNearestPerson(const double x, const double y);
+	bool blockingMovement(const Actor *actor, double new_x, double new_y);
+	//bool noObjectAt(double new_x, double new_y);
+	bool personInFrontZombie(const Actor * actor);
 private:
-	void loadLevelFile();
 	void createActors(Level &lev);
 	void removeDeadActors();
-	bool blockingMovemenet(const Actor& a, const Actor &b);
 	Penelope *m_player;
 	vector<Actor*> m_actors;  // contains all actor, including m_player
-	int score, numLives, numInfected;
-	int numCitizens, numVaccines, numLandmines, numFlamethrowers, numZombies;
+	int numCitizens;
 	bool game_level_finished;
-	int m_score;
 };
 
 #endif // STUDENTWORLD_H_
