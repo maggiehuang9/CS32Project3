@@ -6,30 +6,19 @@
 #include <sstream>
 #include <iomanip>
 #include <stack>
-	using namespace std;
+#include <algorithm>
+using namespace std;
 
-string intToString(int k)
-{
-	ostringstream oss;
-	oss.fill('0');
-	oss << setw(2) << k;
-	return oss.str();
-}
 GameWorld* createStudentWorld(string assetPath)
 {
 	return new StudentWorld(assetPath);
 }
 
-// Students:  Add code to this file, StudentWorld.h, Actor.h and Actor.cpp
-
-StudentWorld::StudentWorld(string assetPath)
-	: GameWorld(assetPath)
+StudentWorld::StudentWorld(string assetPath) : GameWorld(assetPath)
 {
 	m_player = nullptr;
-	score = numLives = numInfected = numCitizens = 0;
-	numVaccines = numLandmines = numFlamethrowers = numZombies = 0;
+	numCitizens = 0;
 	game_level_finished = false;
-	m_score = 0;
 }
 
 StudentWorld::~StudentWorld()
@@ -38,34 +27,35 @@ StudentWorld::~StudentWorld()
 }
 int StudentWorld::init()
 {
-	loadLevelFile();
-	return GWSTATUS_CONTINUE_GAME;
-}
-
-void StudentWorld::loadLevelFile()
-{
+	// Initialize the data structures used to keep track of your game’s world
+	// and return proper state based on the data file format
 	Level lev(assetPath());
-	int level = getLevel();
-	string levelFile = "level" + intToString(level) + ".txt";
-	Level::LoadResult result = lev.loadLevel(levelFile);
+	ostringstream oss;
+	oss << "level" << setw(2) << setfill('0') << getLevel() << ".txt";
+	Level::LoadResult result = lev.loadLevel(oss.str());
 	if (result == Level::load_fail_file_not_found)
-		cerr << "Cannot find level01.txt data file" << endl;
+	{
+		// no more lvel file with this level number
+		return GWSTATUS_PLAYER_WON;
+	}
 	else if (result == Level::load_fail_bad_format)
-		cerr << "Your level was improperly formatted" << endl;
+	{
+		return  GWSTATUS_LEVEL_ERROR;
+	}
 	else if (result == Level::load_success)
 	{
-		cerr << "Successfully loaded level" << endl;
+		//cerr << "Successfully loaded level" << endl;
 		createActors(lev);
-		for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
-		{
-			(*it)->setWorld(this);
-		}
+		return GWSTATUS_CONTINUE_GAME;
 	}
+
+	return  GWSTATUS_LEVEL_ERROR;
 }
 
 void StudentWorld::createActors(Level &lev)
 {
-	cerr << "Successfully loaded level" << endl;
+	//  create actor based on Allocate the current level’s data file
+	//  save all of these actors in a vector
 	for (int r = 0; r < LEVEL_WIDTH; r++)
 	{
 		for (int c = 0; c < LEVEL_HEIGHT; c++)
@@ -74,109 +64,128 @@ void StudentWorld::createActors(Level &lev)
 			switch (ge) // so x=80 and y=160
 			{
 			case Level::empty:
-				//cout << "Location 80,160 is empty" << endl;
 				break;
 			case Level::smart_zombie:
-				m_actors.push_back(new SmartZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 starts with a smart zombie" << endl;
+				m_actors.push_back(new SmartZombie(this, IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			case Level::dumb_zombie:
-				m_actors.push_back(new DumbZombie(IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 starts with a dumb zombie" << endl;
+				m_actors.push_back(new DumbZombie(this, IID_ZOMBIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			case Level::player:
-				m_player = new Penelope(IID_PLAYER, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0);
+				m_player = new Penelope(this, IID_PLAYER, r*SPRITE_WIDTH, c*SPRITE_HEIGHT);
 				m_actors.push_back(m_player);
-				//cout << "Location 80,160 is where Penelope starts" << endl;
 				break;
 			case Level::exit:
-				m_actors.push_back(new Exit(IID_EXIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
+				m_actors.push_back(new Exit(this, IID_EXIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				//cout << "Location 80,160 is where an exit is" << endl;
 				break;
 			case Level::wall:
-				m_actors.push_back(new Wall(IID_WALL, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 holds a Wall" << endl;
+				m_actors.push_back(new Wall(this, IID_WALL, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			case Level::pit:
-				m_actors.push_back(new Pit(IID_PIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 has a pit in the ground" << endl;
+				m_actors.push_back(new Pit(this, IID_PIT, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			case Level::citizen:
 				numCitizens++;
-				m_actors.push_back(new Citizen(IID_CITIZEN, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 has a pit in the ground" << endl;
+				m_actors.push_back(new Citizen(this, IID_CITIZEN, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			case Level::vaccine_goodie:
-				m_actors.push_back(new VaccineGoodie(IID_VACCINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 has a pit in the ground" << endl;
+				m_actors.push_back(new VaccineGoodie(this, IID_VACCINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			case Level::gas_can_goodie:
-				m_actors.push_back(new GasCanGoodie(IID_GAS_CAN_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 has a pit in the ground" << endl;
+				m_actors.push_back(new GasCanGoodie(this, IID_GAS_CAN_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			case Level::landmine_goodie:
-				m_actors.push_back(new LandmineGoodie(IID_LANDMINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT, GraphObject::right, 0));
-				//cout << "Location 80,160 has a pit in the ground" << endl;
+				m_actors.push_back(new LandmineGoodie(this, IID_LANDMINE_GOODIE, r*SPRITE_WIDTH, c*SPRITE_HEIGHT));
 				break;
 			}
 		}
 	}
-	cout << "size of" << m_actors.size() << endl;
+	//cout << "size of" << m_actors.size() << endl;
 }
 
-void StudentWorld::moveActor(Actor &a, double newX, double newY)
+void StudentWorld::moveActor(Actor *actor, double newX, double newY)
 {
-	int count = 0;
+	// move actor to a new location newX, newY if possible
 	for (vector<Actor*>::iterator b = m_actors.begin(); b != m_actors.end(); b++)
 	{
-		if (*b == &a) continue;  // skip itself
-		if (!(*b)->isAlive()) continue;
-		count++;
-
-		if ((*b)->flammable() && (*b)->overlap(a))
-			a.setState(false);  // actor a is died due to flame
-		else if ((*b)->blockingOtherObject())
-			if (blockingMovemenet(a, *(*b)))
+		if (*b == actor) continue;  // skip itself
+		if ((*b)->isDead()) continue;
+		if ((*b)->blocksMovement())
+			if ((*b)->isAgentMovementBlockedAt(newX, newY))
 				return;
-
-		/*
-				switch ((*b)->getType())
-				{
-				case  Actor::landmine_goodie:
-				case  Actor::gas_can_goodie:
-				case  Actor::vaccine_goodie:
-					break;
-				case  Actor::exit:   // allow to overlap exit
-					break;
-				case Actor::landmine:
-					a.moveTo(newX, newY);
-					break;
-				case  Actor::flame:
-					if ((*b)->overlap(a))
-					{
-						a.setState(false);  // actor a is died due to flame
-						break;
-					}
-					break;
-				default:
-					if (blockingMovemenet(a, *(*b))) return; // check if actor a blocks actor a, if yes, actor a cannot move, just return
-					break;
-				}
-
-				*/
 	}
 
-	// reach here, no actors block actor a, so a move to new location
-	a.moveTo(newX, newY);
+	// reach here, no actors block actor a, so actor moves to new location
+	actor->moveTo(newX, newY);
 }
 
 
 bool StudentWorld::overlapWallExit(const double x, const double y)
 {
-	// check if any wall and exit overlap position x, y
+	// check if any wall and exit overlap position x, y, use for flame generation
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->blockingFlame() && (*it)->overlap(x, y)) return true;
+		if ((*it)->isDead()) continue;
+		if ((*it)->blocksFlame() && (*it)->overlap(x, y)) return true;
+	}
+
+	return false;
+}
+
+bool StudentWorld::citizenFoundExit(const Actor *eXit)
+{
+	// check if citizen find exit, if yes, remove the citizen from the list
+	// and return true, otherwise, return false
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->isDead()) continue;
+		if ((*it)->canExit() && (*it)->overlap(eXit))
+		{
+			(*it)->setDead();
+			playSound(SOUND_CITIZEN_SAVED);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void StudentWorld::overlapPitFlame(const Actor *flame)
+{
+	// check if any object overlap with Pit or flame, if yes, act properly, say die
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->isDead()) continue;
+		if ((*it)->overlap(flame))
+		{
+			(*it)->dieByFallOrBurnIfAppropriate();
+		}
+	}
+}
+
+void StudentWorld::overlapVomit(const Actor *vomit)
+{
+	// check if any object overlap with vomit,  if yes, act properly, sa get infected
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->isDead()) continue;
+
+		if ((*it)->overlap(vomit))
+		{
+			(*it)->beVomitedOnIfAppropriate();
+		}
+	}
+}
+
+bool StudentWorld::overlapLandmine(Actor *landmine)
+{
+	// check if any object overlap with landmine, if yes, trigger landmine
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->isDead()) continue;
+		if (!(*it)->triggersOnlyActiveLandmines()) continue;
+		if ((*it)->overlap(landmine)) return true;
 	}
 
 	return false;
@@ -184,60 +193,52 @@ bool StudentWorld::overlapWallExit(const double x, const double y)
 
 bool StudentWorld::citizensGone()
 {
+	// check if no live citizen, if no live citizen, return true, otherwise, return false
 	return numCitizens == 0;
 }
 
-
-//bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
-//{
-//	// check if actor b blocks actor a, if yes, return true, otherwise, return false
-//	return (distance(b.getX(), a.getX()) < SPRITE_WIDTH-5 &&
-//		distance(b.getY(), a.getY()) < SPRITE_HEIGHT-5);
-//}
-
-
-bool StudentWorld::blockingMovemenet(const Actor& a, const Actor &b)
+bool StudentWorld::blockingMovement(const Actor *actor, double new_x, double new_y)
 {
-	//check if actor b blocks actor a, if yes, return true, otherwise, return false
-	switch (a.getDirection())
+	// check if any object block actor moving to a location new_x, new_y
+	// if yes, return true, otherwise, return false
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-	case GraphObject::left:
-		if (b.getX() > a.getX()) return false;
-		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT) return false;
-		if ((a.getX() - b.getX()) < SPRITE_WIDTH + 4)
+		if ((*it)->isDead()) continue;
+		if (*it == actor) continue;  // except itself
+		if ((*it)->blocksMovement() && (*it)->isAgentMovementBlockedAt(new_x, new_y))
 			return true;
-		return false;
-	case GraphObject::right:
-		if (b.getX() < a.getX()) return false;
-		if (distance(a.getY(), b.getY()) >= SPRITE_HEIGHT) return false;
-		if ((b.getX()) - a.getX() < SPRITE_WIDTH + 4)
-			return true;
-		return false;
-	case GraphObject::down:
-		if (b.getY() > a.getY()) return false;
-		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH) return false;
-		if ((a.getY() - b.getY()) < SPRITE_HEIGHT + 4)
-			return true;
-		return false;
-	case GraphObject::up:
-		if (b.getY() < a.getY()) return false;
-		if (distance(a.getX(), b.getX()) >= SPRITE_WIDTH) return false;
-		if ((b.getY() - a.getY()) < SPRITE_HEIGHT + 4)
-			return true;
-		return false;
 	}
 
 	return false;
 }
 
-bool StudentWorld::blockingMovement(const Actor & actor, double new_x, double new_y)
+bool StudentWorld::personInFrontZombie(const Actor * zombie)
 {
-	// check if any object block actor moving to new location new_x, new_y
+	// check if any person in front of a zombie,  if yes, return true, otherwise, return false
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if (*it == &actor) continue;  // except ifself
-		if ((*it)->blockingOtherObject() && (*it)->boundingBoxOverlap(actor))
-			return true;
+		if ((*it)->isDead()) continue;
+		if (!((*it)->triggersZombieVomit())) continue;  // skip non human objects
+
+		switch (zombie->getDirection())
+		{
+		case GraphObject::right:
+			if (distance((*it)->getY(), zombie->getY()) < SPRITE_HEIGHT && (*it)->getX() > zombie->getX())
+				return true;
+			break;
+		case GraphObject::left:
+			if (distance((*it)->getY(), zombie->getY()) < SPRITE_HEIGHT && (*it)->getX() < zombie->getX())
+				return true;
+			break;
+		case GraphObject::up:
+			if (distance((*it)->getX(), zombie->getX()) < SPRITE_WIDTH && (*it)->getY() > zombie->getY())
+				return true;
+			break;
+		case GraphObject::down:
+			if (distance((*it)->getX(), zombie->getX()) < SPRITE_WIDTH && (*it)->getY() < zombie->getY())
+				return true;
+			break;
+		}
 	}
 
 	return false;
@@ -248,46 +249,56 @@ int StudentWorld::move()
 	// This code is here merely to allow the game to build, run, and terminate after you hit enter.
 	// Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
 	//decLives();
-	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+
+	int numActors = m_actors.size();  // use size of actors for after last tick, not include actors created in this tick
+	for (int i = 0; i < numActors; i++)
 	{
-		(*it)->doSomething();
+		if (!m_actors[i]->isDead())
+			m_actors[i]->doSomething();
 	}
 
 	// update status line text
 	// Score: 004500 Level: 27 Lives: 3 Vaccines: 2 Flames: 16 Mines: 1 Infected: 0
 	ostringstream oss;
 	//oss.fill('0');
-	oss << "Score: " << score << "  Level: " << getLevel()
-		<< "  Lives: " << numLives << "  Vaccines: " << numVaccines
-		<< "  Flames: " << numFlamethrowers
-		<< "  Mines: " << numLandmines
-		<< "  Infected: " << numInfected;
+	oss << "Score: " << setw(6) << setfill('0') << std::internal << getScore() << "  Level: " << getLevel()
+		<< "  Lives: " << getLives() << "  Vaccines: " << m_player->getNumVaccines()
+		<< "  Flames: " << m_player->getNumFlameCharges()
+		<< "  Mines: " << m_player->getNumLandmines()
+		<< "  Infected: " << m_player->getInfectionDuration();
 	//numVaccines, numLandmines, numFlamethrowers;
 	setGameStatText(oss.str());
 
-	if (!m_player->isAlive())
+	if (m_player->isDead()) {
+		decLives();
 		return GWSTATUS_PLAYER_DIED;
+	}
 
 	removeDeadActors();
 
-	if (game_level_finished)
+	if (game_level_finished) {
+		playSound(SOUND_LEVEL_FINISHED);
 		return GWSTATUS_FINISHED_LEVEL;
+	}
+
 
 	return GWSTATUS_CONTINUE_GAME;
 }
 
 void StudentWorld::addActor(Actor* actor)
 {
+	// add a new actor
 	m_actors.push_back(actor);
 }
 
 void StudentWorld::removeDeadActors()
 {
+	// remove any dead actor
 	stack<int> removeItems;
 
 	for (int i = 0; i < m_actors.size(); i++)
 	{
-		if (!m_actors[i]->isAlive())
+		if (m_actors[i]->isDead())
 			removeItems.push(i);
 	}
 
@@ -304,6 +315,7 @@ void StudentWorld::removeDeadActors()
 
 void StudentWorld::cleanUp()
 {
+	// cleanup memory, delete all actors, and clear the vector of actor pointers, reset member variables
 
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
@@ -311,67 +323,26 @@ void StudentWorld::cleanUp()
 	}
 	m_actors.clear();
 	m_player = nullptr; // not need to delete m_player because it is also included in m_actors, already deleted in above loop
-	score = numLives = numInfected = numCitizens = 0;
-	numVaccines = numLandmines = numFlamethrowers = 0;
+	numCitizens = 0;
 	game_level_finished = false;
-}
-
-void StudentWorld::addFlame()
-{
-	numFlamethrowers += 5;
-	cout << " *** addFlame " << numFlamethrowers << endl;
-}
-
-void StudentWorld::addMine()
-{
-	numLandmines += 2;
-	cout << "  *** addMine " << numLandmines << endl;
-}
-void StudentWorld::addVaccine()
-{
-	numVaccines++;
-	cout << " ***  addVaccine " << numVaccines << endl;
-}
-
-void StudentWorld::addZombie()
-{
-	numZombies++;
-}
-
-int StudentWorld::getNumFlame()
-{
-	return numFlamethrowers;
-}
-int StudentWorld::getNumMine()
-{
-	return numLandmines;
-}
-int StudentWorld::getNumVaccine()
-{
-	return numVaccines;
 }
 
 int StudentWorld::getNumZombie()
 {
-	return numZombies;
+	// count number of zombies
+	int count = 0;
+
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->isDead()) continue;
+		if ((*it)->mayVomit()) count++;
+	}
+	return count;
 }
 
-void StudentWorld::decreaseFlame()
+Penelope *StudentWorld::player()
 {
-	numFlamethrowers--;
-}
-void StudentWorld::decreaseMine()
-{
-	numLandmines--;
-}
-void StudentWorld::decreaseVaccine()
-{
-	numVaccines--;
-}
-
-Penelope &StudentWorld::getPlayer()
-{
-	return *m_player;
+	return m_player;
 }
 
 void StudentWorld::setGameLevelFinished()
@@ -379,23 +350,60 @@ void StudentWorld::setGameLevelFinished()
 	game_level_finished = true;
 }
 
-void StudentWorld::decreaseScore(int n)
+double StudentWorld::distanceToNearestZombie(const Actor *actor)
 {
-	m_score -= n;
+	return distanceToNearestZombie(actor->getX(), actor->getY());
 }
 
-double StudentWorld::DistanceToNearestZombie(const Actor &actor, int x, int y)
+double StudentWorld::distanceToNearestZombie(const double x, const double y)
 {
-	return pow(actor.getX() - x, 2) + pow(actor.getY() - y, 2);
-}
+	// compute distance to the nearest zombie from current location, if no zombie exit, return a huge number
+	double min_dist = 1.0E+10;
 
-bool StudentWorld::overlapCitizen(const Actor &actor)
-{
-	// check if actor overlap with a citizen, if yes, return true, otherwise return false
 	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
 	{
-		if ((*it)->canExit() && (*it)->overlap(actor))
-			return true;
+		if ((*it)->isDead()) continue;
+		if ((*it)->mayVomit()) min_dist = std::min(min_dist, (*it)->distanceTo(x, y));
 	}
-	return false;
+	return min_dist;
+}
+
+double StudentWorld::distanceToNearestPerson(const double x, const double y)
+{
+	// compute distance to the nearest people from current location, if no people exit, return a huge number
+	double min_dist = 1.0E+10;  // set to a large number
+
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->isDead()) continue;
+		if ((*it)->triggersZombieVomit())
+			min_dist = std::min(min_dist, (*it)->distanceTo(x, y));
+	}
+	return min_dist;
+}
+
+Actor *StudentWorld::findNearestPerson(const double x, const double y)
+{
+	// find the nearest person from current location, retunr pointer to the person
+	Actor *nearestPerson = nullptr;
+
+	double min_dist = 1.0E+10;  // set to a large number
+
+	for (vector<Actor*>::iterator it = m_actors.begin(); it != m_actors.end(); it++)
+	{
+		if ((*it)->isDead()) continue;
+		if (!(*it)->triggersZombieVomit()) continue;
+		if ((*it)->distanceTo(x, y) < min_dist)
+		{
+			min_dist = (*it)->distanceTo(x, y);
+			nearestPerson = *it;
+		}
+	}
+
+	return nearestPerson;
+}
+
+void StudentWorld::decreaseCitizen()
+{
+	numCitizens--;
 }
